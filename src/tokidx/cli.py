@@ -12,7 +12,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from .normalize import serving_check
-from .pipeline import run, run_all
+from .pipeline import default_index_date, run, run_all
 from .sources import COLLECTED_AT, all_observations
 from .spec import (
     CONTRACTS,
@@ -35,7 +35,7 @@ def _table(**kwargs) -> Table:
 @app.command()
 def publish(index_date: str | None = typer.Option(None, "--date")) -> None:
     """Run every index and print the board."""
-    day = date.fromisoformat(index_date) if index_date else date.today()
+    day = date.fromisoformat(index_date) if index_date else default_index_date()
     fixings = run_all(day)
 
     console.print(Panel(
@@ -85,7 +85,7 @@ def publish(index_date: str | None = typer.Option(None, "--date")) -> None:
 def explain(index_code: str = typer.Argument(...),
             index_date: str | None = typer.Option(None, "--date")) -> None:
     """Walk one fixing from published prices to the decision."""
-    day = date.fromisoformat(index_date) if index_date else date.today()
+    day = date.fromisoformat(index_date) if index_date else default_index_date()
     contract = CONTRACTS[index_code]
     f = run(index_code, day)
 
@@ -276,7 +276,7 @@ def export_web(
 
     from .web import write_bundle
 
-    day = date.fromisoformat(index_date) if index_date else date.today()
+    day = date.fromisoformat(index_date) if index_date else default_index_date()
     path = write_bundle(Path(out), day)
     console.print(f"  wrote [bold]{path}[/]  ({path.stat().st_size:,} bytes)")
 

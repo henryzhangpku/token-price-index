@@ -14,7 +14,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from .pipeline import run_all
+from .pipeline import default_index_date, run_all
 from .sources import COLLECTED_AT, all_observations
 from .spec import (
     CONTRACTS,
@@ -30,11 +30,11 @@ BUNDLE = "fixings.json"
 
 
 def build_bundle(index_date: date | None = None) -> dict[str, Any]:
-    day = index_date or date.today()
+    day = index_date or default_index_date()
     fixings = run_all(day)
 
     return {
-        "generated_for": day.isoformat(),
+        "index_date": day.isoformat(),
         "prices_read": COLLECTED_AT.date().isoformat(),
         "methodology_version": METHODOLOGY_VERSION,
         "observation_count": len(all_observations()),
