@@ -262,5 +262,24 @@ def calibrate() -> None:
                   "  independent sellers publishing the same ratio is a convention.[/]\n")
 
 
+@app.command("export-web")
+def export_web(
+    out: str = typer.Option("web/data", help="Directory to write the bundle into"),
+    index_date: str | None = typer.Option(None, "--date"),
+) -> None:
+    """Write the JSON the static site reads.
+
+    The site never recomputes anything: it renders what this pipeline decided,
+    so the page and the CLI cannot disagree.
+    """
+    from pathlib import Path
+
+    from .web import write_bundle
+
+    day = date.fromisoformat(index_date) if index_date else date.today()
+    path = write_bundle(Path(out), day)
+    console.print(f"  wrote [bold]{path}[/]  ({path.stat().st_size:,} bytes)")
+
+
 if __name__ == "__main__":
     app()

@@ -1,0 +1,319 @@
+{
+ "generated_for": "2026-09-08",
+ "prices_read": "2026-09-08",
+ "methodology_version": "0.1.0",
+ "observation_count": 24,
+ "disclaimer": "A demonstration of which parts of the inference market can carry a reference price. Do not settle anything against these values.",
+ "spec": {
+  "tier_weights": {
+   "1": 1.0,
+   "2": 0.6,
+   "3": 0.25
+  },
+  "serving_factors": {
+   "standard": 1.0,
+   "batch": 2.0,
+   "cached": 10.0,
+   "priority": 0.5
+  },
+  "max_total_adjustment": 5.0,
+  "outlier_sigmas": 3.0,
+  "gates": {
+   "indexable_good": true,
+   "min_providers": 3,
+   "min_observations": 3,
+   "max_dispersion": 0.6,
+   "max_provider_weight_share": 0.5
+  }
+ },
+ "indices": [
+  {
+   "code": "TIX-K26-OUT",
+   "display_name": "Kimi K2.6 output",
+   "model": "kimi-k2.6",
+   "direction": "output",
+   "indexable": true,
+   "value": 4.0,
+   "dispersion": 0.185325,
+   "published": true,
+   "withheld_reason": null,
+   "gates": [
+    {
+     "name": "indexable_good",
+     "passed": true,
+     "detail": "open weights, multiple sellers"
+    },
+    {
+     "name": "min_providers",
+     "passed": true,
+     "detail": "3 of 3 required"
+    },
+    {
+     "name": "min_observations",
+     "passed": true,
+     "detail": "4 of 3 required"
+    },
+    {
+     "name": "dispersion",
+     "passed": true,
+     "detail": "0.185 against ceiling 0.6"
+    }
+   ],
+   "providers": [
+    {
+     "provider": "deepinfra",
+     "price": 3.5,
+     "quotes": 2,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "fireworks",
+     "price": 4.0,
+     "quotes": 1,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "together",
+     "price": 4.5,
+     "quotes": 1,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    }
+   ],
+   "rejections": 20
+  },
+  {
+   "code": "TIX-K26-IN",
+   "display_name": "Kimi K2.6 input",
+   "model": "kimi-k2.6",
+   "direction": "input",
+   "indexable": true,
+   "value": 0.9666666666666667,
+   "dispersion": 0.3121263157894736,
+   "published": true,
+   "withheld_reason": null,
+   "gates": [
+    {
+     "name": "indexable_good",
+     "passed": true,
+     "detail": "open weights, multiple sellers"
+    },
+    {
+     "name": "min_providers",
+     "passed": true,
+     "detail": "3 of 3 required"
+    },
+    {
+     "name": "min_observations",
+     "passed": true,
+     "detail": "4 of 3 required"
+    },
+    {
+     "name": "dispersion",
+     "passed": true,
+     "detail": "0.312 against ceiling 0.6"
+    }
+   ],
+   "providers": [
+    {
+     "provider": "deepinfra",
+     "price": 0.75,
+     "quotes": 2,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "fireworks",
+     "price": 0.95,
+     "quotes": 1,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "together",
+     "price": 1.2,
+     "quotes": 1,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    }
+   ],
+   "rejections": 20
+  },
+  {
+   "code": "TIX-GLM5-OUT",
+   "display_name": "GLM 5.x output",
+   "model": "glm-5",
+   "direction": "output",
+   "indexable": true,
+   "value": null,
+   "dispersion": null,
+   "published": false,
+   "withheld_reason": "min_providers: 2 of 3 required; min_observations: 2 of 3 required; dispersion: not computable below three providers",
+   "gates": [
+    {
+     "name": "indexable_good",
+     "passed": true,
+     "detail": "open weights, multiple sellers"
+    },
+    {
+     "name": "min_providers",
+     "passed": false,
+     "detail": "2 of 3 required"
+    },
+    {
+     "name": "min_observations",
+     "passed": false,
+     "detail": "2 of 3 required"
+    },
+    {
+     "name": "dispersion",
+     "passed": false,
+     "detail": "not computable below three providers"
+    }
+   ],
+   "providers": [
+    {
+     "provider": "fireworks",
+     "price": 4.4,
+     "quotes": 1,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "together",
+     "price": 4.4,
+     "quotes": 1,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    }
+   ],
+   "rejections": 22
+  },
+  {
+   "code": "TIX-MM27-OUT",
+   "display_name": "MiniMax M2.7 output",
+   "model": "minimax-m2.7",
+   "direction": "output",
+   "indexable": true,
+   "value": null,
+   "dispersion": null,
+   "published": false,
+   "withheld_reason": "min_providers: 2 of 3 required; min_observations: 2 of 3 required; dispersion: not computable below three providers",
+   "gates": [
+    {
+     "name": "indexable_good",
+     "passed": true,
+     "detail": "open weights, multiple sellers"
+    },
+    {
+     "name": "min_providers",
+     "passed": false,
+     "detail": "2 of 3 required"
+    },
+    {
+     "name": "min_observations",
+     "passed": false,
+     "detail": "2 of 3 required"
+    },
+    {
+     "name": "dispersion",
+     "passed": false,
+     "detail": "not computable below three providers"
+    }
+   ],
+   "providers": [
+    {
+     "provider": "fireworks",
+     "price": 1.2,
+     "quotes": 1,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "together",
+     "price": 1.2,
+     "quotes": 1,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    }
+   ],
+   "rejections": 22
+  },
+  {
+   "code": "TIX-FRONTIER-OUT",
+   "display_name": "Frontier proprietary output",
+   "model": "frontier",
+   "direction": "output",
+   "indexable": false,
+   "value": null,
+   "dispersion": null,
+   "published": false,
+   "withheld_reason": "indexable_good: proprietary model: one seller per model, so cross-seller price discovery does not exist; min_providers: 2 of 3 required; dispersion: not computable below three providers",
+   "gates": [
+    {
+     "name": "indexable_good",
+     "passed": false,
+     "detail": "proprietary model: one seller per model, so cross-seller price discovery does not exist"
+    },
+    {
+     "name": "min_providers",
+     "passed": false,
+     "detail": "2 of 3 required"
+    },
+    {
+     "name": "min_observations",
+     "passed": true,
+     "detail": "4 of 3 required"
+    },
+    {
+     "name": "dispersion",
+     "passed": false,
+     "detail": "not computable below three providers"
+    }
+   ],
+   "providers": [
+    {
+     "provider": "openai",
+     "price": 35.0,
+     "quotes": 2,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "anthropic",
+     "price": 37.5,
+     "quotes": 2,
+     "tier": 1,
+     "weight": 1.0,
+     "screened_out": false,
+     "screen_reason": null
+    }
+   ],
+   "rejections": 20
+  }
+ ]
+}

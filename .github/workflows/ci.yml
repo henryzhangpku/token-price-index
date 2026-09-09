@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: lint
+        run: uvx ruff check src tests
+      - name: tests
+        run: uv run --group dev pytest -q
+      - name: the site must agree with the pipeline
+        # A stale bundle would let the page publish a number the estimator no
+        # longer produces. Regenerate it and fail if the committed copy differs.
+        run: |
+          uv run tokidx export-web --out web/data
+          git diff --exit-code -- web/data
