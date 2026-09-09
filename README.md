@@ -1,11 +1,29 @@
 # Token Price Index
 
-A reference implementation of a price benchmark for LLM inference, built the
-way a settlement benchmark has to be built rather than the way a pricing
-comparison page can be.
+A reference implementation of a price benchmark for LLM inference, built around
+a settlement benchmark's constraints rather than a pricing comparison
+page's.
 
 It exists to answer one question honestly: **which parts of the token market
 can carry an index at all, and which cannot.**
+
+## Scope, stated up front
+
+This is a **study**, not a system. It sits beside
+[gpu-price-index](https://github.com/henryzhangpku/gpu-price-index), which is
+the built one: a bitemporal store, adjustment factors calibrated against
+matched pairs, a contributor-shift check measured from 403 observations, 132
+tests.
+
+This repository deliberately has none of that. There is **no store**, so no
+as-of query and no way to correct a published value once it is out. There is
+**no contributor-shift check**, so no defence against a seller repricing to
+move the fixing. There are **no source adapters** — prices come from one
+dated, sourced table read by hand.
+
+Those are exactly the parts a settlement benchmark cannot do without. They are
+absent because the question here is answered before any of them matter: a good
+with one seller is unindexable whether or not you can restate it.
 
 ```
 daily fixing
