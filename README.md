@@ -1,0 +1,116 @@
+# Token Price Index
+
+A reference implementation of a price benchmark for LLM inference, built the
+way a settlement benchmark has to be built rather than the way a pricing
+comparison page can be.
+
+It exists to answer one question honestly: **which parts of the token market
+can carry an index at all, and which cannot.**
+
+```
+daily fixing
+
+ index               value   prov   obs    disp   status      why
+ ─────────────────────────────────────────────────────────────────────────────
+ TIX-K26-OUT         4.000      3     4   0.185   published
+ TIX-K26-IN          0.967      3     4   0.312   published
+ TIX-GLM5-OUT           --      2     2      --   withheld    min providers
+ TIX-MM27-OUT           --      2     2      --   withheld    min providers
+ TIX-FRONTIER-OUT       --      2     4      --   withheld    indexable good
+
+  USD per million tokens. 3 of 5 indices decline to print,
+  and 1 of those cannot print by construction rather than for want of data.
+```
+
+## The finding
+
+**A frontier model index is not a benchmark. It is one seller's list price
+wearing an index's name.**
+
+Only Anthropic sells Opus 5. Only OpenAI sells GPT-6 Astra. There is no second
+price for the same good, so there is nothing to discover, no dispersion to
+measure, and no meaningful sense in which an average of them is a market rate.
+Publishing one would lend a private pricing decision the authority of a
+benchmark.
+
+**Open-weight models are the opposite.** The same weights are served by many
+independent sellers competing on price, and the spread is real:
+
+| Kimi K2.6, output | price per Mtok |
+|---|---|
+| DeepInfra | $3.50 |
+| Fireworks | $4.00 |
+| Together | $4.50 |
+
+Identical weights, three sellers, a 29% spread. That is a market, and an index
+over it measures something.
+
+So `TIX-FRONTIER-OUT` is included **specifically to be refused.** The gate that
+stops it is `indexable_good`, and it fails before any question of data
+sufficiency arises.
+
+## Quickstart
+
+```bash
+uv run tokidx publish                     # the board
+uv run tokidx explain TIX-K26-OUT         # one fixing, end to end
+uv run tokidx explain TIX-FRONTIER-OUT    # why a good can be unindexable
+uv run tokidx contracts                   # goods, tiers, factors, gates
+uv run tokidx calibrate                   # test the factors against sellers
+```
+
+`explain` is the one to look at. It walks a fixing in four stages — whether the
+good is indexable, what was restated or discarded, which sellers survived the
+screen and what weight they carry, and which gates held.
+
+## How it is built
+
+**One good per index, and input is never mixed with output.** They are priced
+differently by every seller and consumed in different ratios by different
+workloads; blending them requires an assumed ratio nobody can observe.
+
+**Rank inputs by what they prove.** A published API rate card is transactable
+today by anyone with a card, so unlike a compute-rental benchmark the top
+evidence tier is genuinely populated. A price seen through a router carries
+less weight, because the router's margin is not visible.
+
+**Collapse each seller to one median.** A provider serving forty models gets
+one vote, not forty.
+
+**Screen on median absolute deviation**, which has a 50% breakdown point,
+rather than standard deviation, which has none — the outlier being screened for
+inflates the very yardstick measuring it. With no spread at all, MAD is zero
+and the sigma test is undefined, so the screen falls back to a symmetric ratio
+band against the consensus.
+
+**Gate publication** on whether the good is indexable, the seller count, the
+observation count, and dispersion. Every gate must hold.
+
+**And withholding is a first-class outcome.** Three of five indices decline to
+print. A gap in a series is a fact about the market; an interpolated value is a
+fiction about it.
+
+## What this cannot do
+
+The full list is in [METHODOLOGY.md](METHODOLOGY.md) section 6. The three that
+matter most:
+
+**No transaction data.** Every input is a published rate card. Nobody here
+observes what anyone actually paid, and enterprise pricing — where the volume
+is — is negotiated and invisible. This measures the retail tail.
+
+**No quality adjustment.** Price per token falls while model capability rises,
+and this index treats a token as a token. That is the hedonic problem official
+statisticians handle for computer prices, and it is not handled here. A falling
+series may be describing better models rather than cheaper ones.
+
+**Curated inputs, not a live collector.** Prices are read from sellers'
+published pages, dated, and sourced, but they are a snapshot rather than a
+scrape. The pipeline is written so a live collector drops in behind the same
+interface.
+
+---
+
+A study of which parts of the inference market can support a reference price.
+It is a demonstration, not a benchmark. Do not settle anything against these
+values.
