@@ -1,0 +1,30 @@
+"""Collect, restate, estimate, gate. One function, so there is one path."""
+
+from __future__ import annotations
+
+from datetime import date
+
+from .estimator import estimate
+from .models import Fixing
+from .normalize import normalize_all
+from .sources import all_observations
+from .spec import CONTRACTS, DEFAULT_GATES, Gates
+
+
+def run(index_code: str, index_date: date | None = None,
+        gates: Gates | None = None) -> Fixing:
+    """Produce one fixing, published or withheld."""
+    observations = all_observations()
+    quotes, rejections = normalize_all(observations, index_code)
+    return estimate(
+        index_code,
+        index_date or date.today(),
+        quotes,
+        rejections,
+        gates or DEFAULT_GATES,
+    )
+
+
+def run_all(index_date: date | None = None,
+            gates: Gates | None = None) -> dict[str, Fixing]:
+    return {code: run(code, index_date, gates) for code in CONTRACTS}
