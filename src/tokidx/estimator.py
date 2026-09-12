@@ -134,11 +134,74 @@ def assign_weights(points: list[ProviderPoint], gates: Gates) -> list[Flag]:
     return flags
 
 
-def dispersion(points: list[ProviderPoint]) -> float | None:
-    """Robust coefficient of variation, or undefined below three providers.
+#: Quantile of absolute deviation used to measure disagreement.
+#:
+#: Not the median, and this was a measured change rather than a preference.
+#: On the first live collection, fifteen of twenty-seven sellers of the same
+#: weights quoted an identical price. The median is then that price, more than
+#: half the deviations from it are exactly zero, and the median deviation --
+#: MAD -- is zero. The gate read 0.000 on a market spanning six times from
+#: cheapest to dearest.
+#:
+#: Qn fails the same way and for the same reason: with a majority at one
+#: number, over a quarter of all pairwise differences are zero, so its 0.25
+#: quantile is zero too. Any statistic asking "what is a typical deviation
+#: from the middle" answers zero when the middle is most of the mass.
+#:
+#: The ninetieth percentile still has to reach past the mode to find a value,
+#: so it measures the disagreement that is actually there. It buys that at the
+#: cost of breakdown point -- 10% rather than 50% -- which is acceptable here
+#: because the screen has already removed contaminants by the time dispersion
+#: is computed. Robustness belongs in the screen; measurement belongs here.
+DISPERSION_QUANTILE = 0.90
 
-    Undefined is not a pass. A fixing whose disagreement cannot be measured
-    is refused rather than assumed to be tight.
+#: Share of sellers at one identical price above which the fixing is flagged.
+#:
+#: Half. Not calibrated -- there is one collection date -- but the threshold
+#: has a meaning rather than a fitted value: above it, the median is the modal
+#: price by construction, so the central estimate is one seller's number and
+#: the rest are followers of it.
+MODAL_SHARE_FLAG = 0.50
+
+
+def _quantile(values: list[float], q: float) -> float:
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = q * (len(ordered) - 1)
+    lower = int(position)
+    if lower + 1 >= len(ordered):
+        return ordered[-1]
+    return ordered[lower] + (position - lower) * (ordered[lower + 1] - ordered[lower])
+
+
+def modal_share(points: list[ProviderPoint]) -> float | None:
+    """Fraction of sellers quoting the single most common price.
+
+    A concentration measure for prices, and the exact parallel of venue
+    concentration for sources: counting sellers overstates independence in
+    both cases. Fifteen sellers at one number are not fifteen opinions, they
+    are one number and fourteen followers of it, and a dispersion statistic
+    computed across them will say the market agrees when it has simply not
+    been asked.
+    """
+    prices = [p.price for p in points]
+    if not prices:
+        return None
+    counts: dict[float, int] = {}
+    for price in prices:
+        counts[price] = counts.get(price, 0) + 1
+    return max(counts.values()) / len(prices)
+
+
+def dispersion(points: list[ProviderPoint]) -> float | None:
+    """Scale-free disagreement across sellers, or undefined below three.
+
+    Undefined is not a pass. A fixing whose disagreement cannot be measured is
+    refused rather than assumed to be tight.
+
+    See DISPERSION_QUANTILE for why this is a tail quantile rather than the
+    median absolute deviation the screen uses.
     """
     prices = [p.price for p in points]
     if len(prices) < 3:
@@ -146,8 +209,8 @@ def dispersion(points: list[ProviderPoint]) -> float | None:
     median = statistics.median(prices)
     if median <= 0:
         return None
-    mad = statistics.median([abs(x - median) for x in prices])
-    return (mad * MAD_TO_SIGMA) / median
+    deviations = [abs(x - median) for x in prices]
+    return _quantile(deviations, DISPERSION_QUANTILE) / median
 
 
 def estimate(
@@ -164,6 +227,24 @@ def estimate(
 
     contributing = [p for p in points if not p.screened_out]
     disp = dispersion(contributing)
+
+    # Counting sellers overstates independence when most of them quote the
+    # same number. Reported next to the fixing for the same reason the venue
+    # count is reported next to the seller count.
+    share = modal_share(contributing)
+    if share is not None and share >= MODAL_SHARE_FLAG:
+        at_mode = round(share * len(contributing))
+        flags.append(
+            Flag(
+                severity="warn",
+                code="price_concentration",
+                detail=(
+                    f"{at_mode} of {len(contributing)} sellers quote one identical "
+                    f"price ({share:.0%}); a seller count overstates how much "
+                    "independent pricing is behind this fixing"
+                ),
+            )
+        )
     total_weight = sum(p.weight for p in contributing)
     # Summed in a fixed order and rounded once. Floating-point addition is not
     # associative, so an unrounded mean can differ in its last bit between two

@@ -37,7 +37,7 @@
    "direction": "output",
    "indexable": true,
    "value": 0.3305,
-   "dispersion": 0.0,
+   "dispersion": 0.34000000000000025,
    "published": true,
    "withheld_reason": null,
    "gates": [
@@ -59,7 +59,7 @@
     {
      "name": "dispersion",
      "passed": true,
-     "detail": "0.000 against ceiling 0.6"
+     "detail": "0.340 against ceiling 0.6"
     }
    ],
    "providers": [
@@ -316,7 +316,7 @@
    "direction": "input",
    "indexable": true,
    "value": 0.0989,
-   "dispersion": 0.0,
+   "dispersion": 0.3600000000000002,
    "published": true,
    "withheld_reason": null,
    "gates": [
@@ -338,7 +338,7 @@
     {
      "name": "dispersion",
      "passed": true,
-     "detail": "0.000 against ceiling 0.6"
+     "detail": "0.360 against ceiling 0.6"
     }
    ],
    "providers": [
@@ -595,7 +595,7 @@
    "direction": "output",
    "indexable": true,
    "value": 9.4027,
-   "dispersion": 0.11119499999999988,
+   "dispersion": 0.175,
    "published": true,
    "withheld_reason": null,
    "gates": [
@@ -617,7 +617,7 @@
     {
      "name": "dispersion",
      "passed": true,
-     "detail": "0.111 against ceiling 0.6"
+     "detail": "0.175 against ceiling 0.6"
     }
    ],
    "providers": [
@@ -775,7 +775,7 @@
    "direction": "output",
    "indexable": true,
    "value": 0.7008,
-   "dispersion": 0.1710692307692307,
+   "dispersion": 0.495,
    "published": true,
    "withheld_reason": null,
    "gates": [
@@ -797,7 +797,7 @@
     {
      "name": "dispersion",
      "passed": true,
-     "detail": "0.171 against ceiling 0.6"
+     "detail": "0.495 against ceiling 0.6"
     }
    ],
    "providers": [
@@ -918,10 +918,10 @@
    "model": "minimax/minimax-m3",
    "direction": "output",
    "indexable": true,
-   "value": 0.9231,
-   "dispersion": 0.0,
-   "published": true,
-   "withheld_reason": null,
+   "value": null,
+   "dispersion": 0.9200000000000003,
+   "published": false,
+   "withheld_reason": "dispersion: 0.920 against ceiling 0.6",
    "gates": [
     {
      "name": "indexable_good",
@@ -940,8 +940,8 @@
     },
     {
      "name": "dispersion",
-     "passed": true,
-     "detail": "0.000 against ceiling 0.6"
+     "passed": false,
+     "detail": "0.920 against ceiling 0.6"
     }
    ],
    "providers": [
