@@ -128,7 +128,10 @@ def collect(now: datetime | None = None) -> tuple[list[Observation], list[VenueR
     reach a gate.
     """
     moment = now or datetime.now(UTC)
-    wanted = {(c.model, c.direction) for c in CONTRACTS.values() if c.is_indexable}
+    # Every contract, including the unindexable one. Collecting it matters:
+    # a frontier good has to be refused for having one seller, not for having
+    # an empty table, and those look identical on a page if nobody fetched it.
+    wanted = {(c.model, c.direction) for c in CONTRACTS.values()}
 
     observations: list[Observation] = []
     failures: list[str] = []
