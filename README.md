@@ -106,6 +106,71 @@ screen and what weight they carry, and which gates held.
 
 ## How it is built
 
+Every arrow that leaves the main line is a place an input is thrown away. Most
+of the work in a benchmark is deciding what does not count -- and the first
+decision here is made before any price is read.
+
+```mermaid
+flowchart TB
+    GOOD{"does the good have<br/>more than one seller?"}
+    GOOD -- "no · proprietary weights" --> REFUSE[["refused by construction"]]
+    GOOD -- "yes · open weights" --> SRC["1 venue · 37 sellers"]
+
+    SRC --> OBS["raw observation"]
+    OBS -. "written first" .-> SNAP[("dated snapshot · immutable")]
+
+    OBS --> B{"matches a contract?"}
+    B -- no --> DROP[["discarded, with a reason"]]
+    B -- yes --> C{"right direction and region?"}
+    C -- no --> DROP
+    C -- yes --> D["restate to standard serving"]
+    D --> E{"over 5x cumulative?"}
+    E -- yes --> DROP
+    E -- no --> NQ["normalised quote"]
+
+    NQ --> MED["collapse to seller medians"]
+    MED --> MAD{"within 3 robust sigma?"}
+    MAD -- no --> SCR[["screened, and recorded"]]
+    MAD -- yes --> WT["tier weights, 50% cap"]
+    WT --> VAL["weighted mean · rounded to 4dp"]
+
+    VAL --> CONC{"is a majority of sellers<br/>quoting one identical price?"}
+    CONC -- yes --> FLAG["flagged · a seller count<br/>overstates independence"]
+    CONC -- no --> G
+    FLAG --> G{"every gate holds?"}
+    G -- yes --> PUB["published"]
+    G -- no --> WH["withheld · failing gate recorded"]
+    PUB --> TAPE[("bitemporal store · append-only")]
+    WH --> TAPE
+```
+
+The concentration branch is not decoration. On the first live collection, 15 of
+27 sellers of the same weights quoted an identical price, which is why
+dispersion is measured at the ninetieth percentile of deviation rather than the
+median: with a majority at one number, MAD is zero on a market spanning six
+times. See METHODOLOGY section 5.
+
+```mermaid
+flowchart LR
+    subgraph durable ["committed — the durable record"]
+        SNAP[("data/observations/<br/>one file per collection date")]
+        BUNDLE[("web/data/fixings.json<br/>what the site serves")]
+    end
+
+    subgraph derived ["gitignored — derived state"]
+        DB[("SQLite<br/>rebuilt from snapshots")]
+    end
+
+    COLLECT["tokidx collect"] --> SNAP
+    SNAP --> PUBLISH["tokidx publish"]
+    PUBLISH --> DB
+    PUBLISH --> BUNDLE
+    SNAP --> CI{"does the committed bundle<br/>match a fresh one?"}
+    BUNDLE --> CI
+    CI -- no --> FAIL["CI fails the build"]
+```
+
+
 **One good per index, and input is never mixed with output.** They are priced
 differently by every seller and consumed in different ratios by different
 workloads; blending them requires an assumed ratio nobody can observe.
