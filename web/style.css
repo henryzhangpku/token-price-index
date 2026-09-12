@@ -128,7 +128,7 @@ code, .mono { font-family: var(--mono); }
   font-size: clamp(19px, 2.2vw, 23px); color: var(--ink-2);
   margin: 22px 0 0; max-width: 56ch;
 }
-.hero .kicker { margin: 0; }
+.hero .kicker { margin: 0 0 4px; }
 
 /* ---------- panels ---------- */
 
@@ -196,7 +196,9 @@ tr.on td { background: color-mix(in srgb, var(--accent-soft) 46%, transparent); 
 
 .band { padding: 46px 0; border-top: 1px solid var(--rule); }
 .band h2 { font-size: 26px; font-weight: 700; margin: 0 0 6px; max-width: 24ch; }
-.band .kicker {
+/* Base rule, not scoped to .band: the hero eyebrow needs it too, and scoping
+   it was why the method page rendered its eyebrow as serif sentence case. */
+.kicker {
   font-family: var(--ui); font-size: 12px; font-weight: 600; letter-spacing: .14em;
   text-transform: uppercase; color: var(--muted); margin: 0 0 14px;
 }
