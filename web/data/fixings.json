@@ -5,7 +5,7 @@
   "2026-09-12"
  ],
  "methodology_version": "0.1.0",
- "observation_count": 97,
+ "observation_count": 102,
  "disclaimer": "A demonstration of which parts of the inference market can carry a reference price. Do not settle anything against these values.",
  "spec": {
   "tier_weights": {
@@ -307,7 +307,7 @@
      "screen_reason": null
     }
    ],
-   "rejections": 70
+   "rejections": 75
   },
   {
    "code": "TIX-GLM53-IN",
@@ -586,7 +586,7 @@
      "screen_reason": null
     }
    ],
-   "rejections": 70
+   "rejections": 75
   },
   {
    "code": "TIX-K3-OUT",
@@ -766,7 +766,7 @@
      "screen_reason": null
     }
    ],
-   "rejections": 78
+   "rejections": 83
   },
   {
    "code": "TIX-DSV41-OUT",
@@ -910,7 +910,7 @@
      "screen_reason": null
     }
    ],
-   "rejections": 85
+   "rejections": 90
   },
   {
    "code": "TIX-MM3-OUT",
@@ -1054,7 +1054,7 @@
      "screen_reason": null
     }
    ],
-   "rejections": 85
+   "rejections": 90
   },
   {
    "code": "TIX-FRONTIER-OUT",
@@ -1065,7 +1065,7 @@
    "value": null,
    "dispersion": null,
    "published": false,
-   "withheld_reason": "indexable_good: proprietary model: one seller per model, so cross-seller price discovery does not exist; min_providers: 0 of 3 required; min_observations: 0 of 3 required; dispersion: not computable below three providers",
+   "withheld_reason": "indexable_good: proprietary model: one seller per model, so cross-seller price discovery does not exist; min_providers: 2 of 3 required; dispersion: not computable below three providers",
    "gates": [
     {
      "name": "indexable_good",
@@ -1075,12 +1075,12 @@
     {
      "name": "min_providers",
      "passed": false,
-     "detail": "0 of 3 required"
+     "detail": "2 of 3 required"
     },
     {
      "name": "min_observations",
-     "passed": false,
-     "detail": "0 of 3 required"
+     "passed": true,
+     "detail": "5 of 3 required"
     },
     {
      "name": "dispersion",
@@ -1088,7 +1088,26 @@
      "detail": "not computable below three providers"
     }
    ],
-   "providers": [],
+   "providers": [
+    {
+     "provider": "OpenAI",
+     "price": 32.5,
+     "quotes": 3,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Azure",
+     "price": 34.125,
+     "quotes": 2,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    }
+   ],
    "rejections": 97
   }
  ]
