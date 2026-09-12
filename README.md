@@ -9,21 +9,31 @@ can carry an index at all, and which cannot.**
 
 ## Scope, stated up front
 
-This is a **study**, not a system. It sits beside
-[gpu-price-index](https://github.com/henryzhangpku/gpu-price-index), which is
-the built one: a bitemporal store, adjustment factors calibrated against
-matched pairs, a contributor-shift check measured from 403 observations, 132
-tests.
+It sits beside [gpu-price-index](https://github.com/henryzhangpku/gpu-price-index),
+which asks the same question of compute rental. This one is younger and smaller,
+and the difference is worth naming rather than discovering.
 
-This repository deliberately has none of that. There is **no store**, so no
-as-of query and no way to correct a published value once it is out. There is
-**no contributor-shift check**, so no defence against a seller repricing to
-move the fixing. There are **no source adapters** — prices come from one
-dated, sourced table read by hand.
+**What is here.** A bitemporal store, so what the tape said for a date *as known
+at a moment* stays answerable after any correction; corrections append and must
+carry a reason. Robust estimation with a ratio fallback where the usual one is
+undefined. Publication gates that withhold rather than guess. Quality checks for
+staleness, seller dropout, and level shifts at the index and the seller. A
+property suite over generated markets rather than chosen ones.
 
-Those are exactly the parts a settlement benchmark cannot do without. They are
-absent because the question here is answered before any of them matter: a good
-with one seller is unindexable whether or not you can restate it.
+**What is not.** No source adapters: prices come from one dated, sourced table,
+read by hand on a single day. Which means no series, no chart, and — more
+importantly — **nothing calibrated**. The compute benchmark sets its
+contributor-shift threshold at 25% from 403 observed daily moves with p99 at
+21.2%. The equivalent number here is judgement, and the checks that would use it
+report `not_evaluable` rather than passing quietly, because a control that
+reports success on no evidence is worse than no control.
+
+That is the honest gap, and it is a gap rather than a decision. A benchmark that
+settles anything needs real collection, and this one does not have it yet.
+
+The part that does not need collection is the finding below: whether a good can
+carry an index at all is a property of the good, and it is answerable before the
+first price is read.
 
 ```
 daily fixing
