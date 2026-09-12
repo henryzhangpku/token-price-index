@@ -46,7 +46,7 @@ PROPERTY_SETTINGS = settings(
 
 def quote(provider: str, price: float, tier: Tier = Tier.LIST) -> Quote:
     return Quote(
-        index_code="TIX-K26-OUT",
+        index_code="TIX-GLM53-OUT",
         provider=provider,
         raw_usd_per_mtok=price,
         usd_per_mtok=price,
@@ -85,7 +85,7 @@ def test_the_value_never_escapes_the_contributing_prices(price_list):
     Written with an epsilon first, this passed for two runs and failed on the
     third. A property test that passes on a retry has not passed.
     """
-    fixing = estimate("TIX-K26-OUT", DAY, market(price_list), [], DEFAULT_GATES)
+    fixing = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], DEFAULT_GATES)
     assume(fixing.published)
     contributing = [p.price for p in fixing.contributing]
     unit = 10.0 ** -PUBLICATION_DECIMALS
@@ -96,8 +96,8 @@ def test_the_value_never_escapes_the_contributing_prices(price_list):
 @PROPERTY_SETTINGS
 def test_one_seller_one_vote_whatever_the_catalogue_size(price_list, per_seller):
     """Listing the same weights six times must buy no extra influence."""
-    one = estimate("TIX-K26-OUT", DAY, market(price_list, 1), [], DEFAULT_GATES)
-    many = estimate("TIX-K26-OUT", DAY, market(price_list, per_seller), [], DEFAULT_GATES)
+    one = estimate("TIX-GLM53-OUT", DAY, market(price_list, 1), [], DEFAULT_GATES)
+    many = estimate("TIX-GLM53-OUT", DAY, market(price_list, per_seller), [], DEFAULT_GATES)
     assume(one.value is not None and many.value is not None)
     assert one.value == many.value
 
@@ -106,8 +106,8 @@ def test_one_seller_one_vote_whatever_the_catalogue_size(price_list, per_seller)
 @PROPERTY_SETTINGS
 def test_the_order_observations_arrive_in_changes_nothing(price_list):
     """A fixing that depends on file order is not reproducible."""
-    forward = estimate("TIX-K26-OUT", DAY, market(price_list), [], DEFAULT_GATES)
-    backward = estimate("TIX-K26-OUT", DAY, market(list(reversed(price_list))), [],
+    forward = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], DEFAULT_GATES)
+    backward = estimate("TIX-GLM53-OUT", DAY, market(list(reversed(price_list))), [],
                         DEFAULT_GATES)
     assume(forward.value is not None and backward.value is not None)
     assert forward.value == backward.value
@@ -123,8 +123,8 @@ def test_the_value_scales_with_the_market(price_list, factor):
     precision, so scaling and rounding do not commute. The honest property is
     that they agree to within one published unit on each side.
     """
-    base = estimate("TIX-K26-OUT", DAY, market(price_list), [], DEFAULT_GATES)
-    scaled = estimate("TIX-K26-OUT", DAY, market([p * factor for p in price_list]), [],
+    base = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], DEFAULT_GATES)
+    scaled = estimate("TIX-GLM53-OUT", DAY, market([p * factor for p in price_list]), [],
                       DEFAULT_GATES)
     assume(base.value is not None and scaled.value is not None)
     unit = 10.0 ** -PUBLICATION_DECIMALS
@@ -237,7 +237,7 @@ def test_no_seller_exceeds_the_weight_cap_when_the_cap_is_satisfiable(price_list
 @PROPERTY_SETTINGS
 def test_a_market_thinner_than_the_floor_is_never_published(price_list):
     """Withholding is the outcome for a thin market, not a smaller sample."""
-    fixing = estimate("TIX-K26-OUT", DAY, market(price_list), [], DEFAULT_GATES)
+    fixing = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], DEFAULT_GATES)
     assert not fixing.published
     assert fixing.withheld_reason
 
@@ -246,7 +246,7 @@ def test_a_market_thinner_than_the_floor_is_never_published(price_list):
 @PROPERTY_SETTINGS
 def test_a_published_fixing_always_carries_a_value_and_a_withheld_one_never_does(price_list):
     """The two states have to be distinguishable without reading the gates."""
-    fixing = estimate("TIX-K26-OUT", DAY, market(price_list), [], DEFAULT_GATES)
+    fixing = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], DEFAULT_GATES)
     if fixing.published:
         assert fixing.value is not None
         assert fixing.withheld_reason is None
@@ -258,9 +258,9 @@ def test_a_published_fixing_always_carries_a_value_and_a_withheld_one_never_does
 @PROPERTY_SETTINGS
 def test_a_stricter_gate_never_publishes_more(price_list):
     """Tightening a threshold must narrow what prints, never widen it."""
-    loose = estimate("TIX-K26-OUT", DAY, market(price_list), [], DEFAULT_GATES)
+    loose = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], DEFAULT_GATES)
     strict = estimate(
-        "TIX-K26-OUT", DAY, market(price_list), [],
+        "TIX-GLM53-OUT", DAY, market(price_list), [],
         Gates(min_providers=4, min_observations=8, max_dispersion=0.45,
               max_provider_weight_share=0.35),
     )

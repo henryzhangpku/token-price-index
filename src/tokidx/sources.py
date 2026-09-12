@@ -1,93 +1,125 @@
-"""The observation set: what sellers published, when, and where it was read.
+"""Where observations come from: a dated snapshot on disk.
 
-Every entry carries a source URL and an observation date, so any published
-value can be checked by hand against the seller's own page. Prices move often
--- the providers themselves warn as much -- so a stale entry is a defect and
-the collection date is part of the record rather than metadata.
+Collection and estimation are deliberately separate processes. ``tokidx
+collect`` reaches the network once and writes exactly what it saw to a dated
+file; everything downstream reads that file and never reaches anywhere.
 
-This is a curated snapshot rather than a live scrape, and that is a real
-limitation, disclosed in METHODOLOGY.md section 6. The pipeline is written so
-that a live collector drops in behind the same interface; what would change is
-the freshness of the inputs, not the estimator, the gates or the archive.
+That split is what makes a published value reproducible. A pipeline that
+fetches and computes in one pass can only be re-run against a market that has
+since moved, so its own history is unverifiable -- you can never show that
+Tuesday's number follows from Tuesday's inputs, because Tuesday's inputs are
+gone. Snapshots are committed for the same reason.
+
+The snapshots are also the series. One file per collection date, and the tape
+grows by one file a day rather than by a value appearing from nowhere.
 """
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
+from pathlib import Path
 
 from .models import Observation
 from .spec import Direction, Serving, Tier
 
-#: The date this price set was read from the sellers' published pages.
-COLLECTED_AT = datetime(2026, 9, 8, 12, 0, tzinfo=UTC)
+SNAPSHOT_DIR = Path(__file__).resolve().parents[2] / "data" / "observations"
 
 
-def _obs(
-    provider: str,
-    model: str,
-    inp: float,
-    out: float,
-    url: str,
-    tier: Tier = Tier.LIST,
-    serving: Serving = Serving.STANDARD,
-    context: int = 128_000,
-    note: str = "",
-) -> list[Observation]:
-    """One published price pair becomes two observations, never one blended."""
-    return [
-        Observation(
-            provider=provider,
-            model=model,
-            direction=direction,
-            usd_per_mtok=price,
-            serving=serving,
-            context_tokens=context,
-            region="us",
-            tier=tier,
-            observed_at=COLLECTED_AT,
-            source_url=url,
-            note=note,
+class NoSnapshots(FileNotFoundError):
+    """Raised when nothing has been collected yet.
+
+    Deliberately loud. An empty observation list and an uncollected market look
+    identical to every gate downstream, and only one of them is a market fact.
+    """
+
+
+def snapshot_paths(directory: Path | None = None) -> list[Path]:
+    """Every collection snapshot, oldest first."""
+    root = directory or SNAPSHOT_DIR
+    if not root.exists():
+        return []
+    return sorted(root.glob("*.json"))
+
+
+def latest_snapshot(directory: Path | None = None) -> Path:
+    paths = snapshot_paths(directory)
+    if not paths:
+        raise NoSnapshots(
+            f"no snapshots in {directory or SNAPSHOT_DIR}; run `tokidx collect` first"
         )
-        for direction, price in ((Direction.INPUT, inp), (Direction.OUTPUT, out))
+    return paths[-1]
+
+
+def write_snapshot(
+    observations: list[Observation],
+    collected_at: datetime,
+    *,
+    venues: list[dict] | None = None,
+    directory: Path | None = None,
+) -> Path:
+    """Write one collection to a dated file, verbatim."""
+    root = directory or SNAPSHOT_DIR
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / f"{collected_at.date().isoformat()}.json"
+    payload = {
+        "collected_at": collected_at.isoformat(),
+        "venues": venues or [],
+        "observations": [
+            {
+                "provider": o.provider,
+                "model": o.model,
+                "direction": o.direction.value,
+                "usd_per_mtok": o.usd_per_mtok,
+                "serving": o.serving.value,
+                "context_tokens": o.context_tokens,
+                "region": o.region,
+                "tier": int(o.tier),
+                "observed_at": o.observed_at.isoformat(),
+                "source_url": o.source_url,
+                "note": o.note,
+            }
+            for o in observations
+        ],
+    }
+    path.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
+def read_snapshot(path: Path) -> tuple[list[Observation], datetime]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    collected_at = datetime.fromisoformat(payload["collected_at"])
+    if collected_at.tzinfo is None:
+        collected_at = collected_at.replace(tzinfo=UTC)
+    observations = [
+        Observation(
+            provider=row["provider"],
+            model=row["model"],
+            direction=Direction(row["direction"]),
+            usd_per_mtok=float(row["usd_per_mtok"]),
+            serving=Serving(row["serving"]),
+            context_tokens=int(row["context_tokens"]),
+            region=row["region"],
+            tier=Tier(int(row["tier"])),
+            observed_at=datetime.fromisoformat(row["observed_at"]),
+            source_url=row["source_url"],
+            note=row.get("note", ""),
+        )
+        for row in payload["observations"]
     ]
+    return observations, collected_at
 
 
-#: Open-weight models served by several independent sellers. This is where
-#: price discovery actually happens, and the only place an index is coherent.
-OPEN_WEIGHT: list[Observation] = [
-    # -- Kimi K2.6: the cleanest example. Same weights, three sellers. ------
-    *_obs("deepinfra", "kimi-k2.6", 0.75, 3.50, "https://deepinfra.com/pricing"),
-    *_obs("fireworks", "kimi-k2.6", 0.95, 4.00, "https://fireworks.ai/pricing"),
-    *_obs("together", "kimi-k2.6", 1.20, 4.50, "https://www.together.ai/pricing"),
-    # -- GLM 5.x -----------------------------------------------------------
-    *_obs("fireworks", "glm-5", 1.40, 4.40, "https://fireworks.ai/pricing"),
-    *_obs("together", "glm-5", 1.40, 4.40, "https://www.together.ai/pricing"),
-    # -- MiniMax M2.7 ------------------------------------------------------
-    *_obs("fireworks", "minimax-m2.7", 0.30, 1.20, "https://fireworks.ai/pricing"),
-    *_obs("together", "minimax-m2.7", 0.30, 1.20, "https://www.together.ai/pricing"),
-]
-
-#: Proprietary frontier models. Included so the index can demonstrate what it
-#: does with them, which is refuse. Each of these has exactly one seller.
-FRONTIER: list[Observation] = [
-    *_obs("anthropic", "frontier", 10.00, 50.00, "https://claude.com/pricing",
-          note="Fable 5.1"),
-    *_obs("anthropic", "frontier", 5.00, 25.00, "https://claude.com/pricing",
-          note="Opus 5"),
-    *_obs("openai", "frontier", 10.00, 50.00, "https://openai.com/api/pricing/",
-          note="GPT-6 Astra"),
-    *_obs("openai", "frontier", 4.00, 20.00, "https://openai.com/api/pricing/",
-          note="GPT-5.6 Sol; seller describes the rate as promotional"),
-]
-
-#: Non-standard serving, kept to exercise the restatement path. A batch price
-#: restated to standard should land on the seller's own standard price, which
-#: is the closest thing to a calibration check this schedule has.
-NON_STANDARD: list[Observation] = [
-    *_obs("deepinfra", "kimi-k2.6", 0.375, 1.75, "https://deepinfra.com/pricing",
-          serving=Serving.BATCH, note="batch queue, published at 50% off"),
-]
+def all_observations(directory: Path | None = None) -> list[Observation]:
+    observations, _ = read_snapshot(latest_snapshot(directory))
+    return observations
 
 
-def all_observations() -> list[Observation]:
-    return [*OPEN_WEIGHT, *FRONTIER, *NON_STANDARD]
+def collected_at(directory: Path | None = None) -> datetime:
+    """When the observations behind the current fixing were read."""
+    _, moment = read_snapshot(latest_snapshot(directory))
+    return moment
+
+
+def collection_dates(directory: Path | None = None) -> list[str]:
+    return [p.stem for p in snapshot_paths(directory)]

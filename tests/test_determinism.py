@@ -15,12 +15,12 @@ from __future__ import annotations
 from datetime import date
 
 from tokidx.pipeline import default_index_date, run_all
-from tokidx.sources import COLLECTED_AT
+from tokidx.sources import collected_at
 from tokidx.web import build_bundle
 
 
 def test_the_index_date_comes_from_the_observations() -> None:
-    assert default_index_date() == COLLECTED_AT.date()
+    assert default_index_date() == collected_at().date()
 
 
 def test_the_bundle_is_byte_identical_across_runs() -> None:
@@ -30,7 +30,7 @@ def test_the_bundle_is_byte_identical_across_runs() -> None:
 
 def test_the_bundle_does_not_move_with_the_wall_clock() -> None:
     """Re-running an unchanged snapshot must not invent a new day."""
-    assert build_bundle()["index_date"] == COLLECTED_AT.date().isoformat()
+    assert build_bundle()["index_date"] == collected_at().date().isoformat()
 
 
 def test_an_explicit_date_is_still_honoured() -> None:
