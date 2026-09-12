@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
-<link rel="stylesheet" href="style.css?v=20260912a">
+<link rel="stylesheet" href="style.css?v=20260912c">
 </head>
 <body>
 
@@ -27,43 +27,43 @@
   </nav>
 </div>
 
-<div class="wrap">
+<div class="wrap dash">
 
-  <section class="hero">
-    <h1>Some goods cannot carry an index. Saying so is the job.</h1>
-    <p>
-      A price benchmark for LLM inference. Three of its five indices decline to
-      print &mdash; and one of them cannot print at all, because the good it would
-      measure has exactly one seller.
-    </p>
-  </section>
+  <div class="dash-head">
+    <div>
+      <h1>Fixing detail</h1>
+      <p id="dash-sub">loading&hellip;</p>
+    </div>
+  </div>
+
+  <div class="pickerbar">
+    <div class="picker" id="picker"></div>
+  </div>
 
   <div class="panel">
     <header>
       <h2>Daily fixing</h2>
-      <span class="note" id="board-meta">loading&hellip;</span>
+      <span class="note" id="board-meta"></span>
     </header>
-    <div id="board"><div class="loading">reading the fixings&hellip;</div></div>
+    <div id="board-table"><div class="loading">reading the tape&hellip;</div></div>
+  </div>
+
+  <div class="panel" id="asof-panel">
+    <header>
+      <h2>As of</h2>
+      <span class="note" id="asof-note"></span>
+    </header>
     <div class="body">
-      <p class="onedate" id="onedate">&nbsp;</p>
+      <p class="asof-prose">
+        The store is bitemporal: every value carries when it was true in the market
+        and when this system first knew it. Nothing is overwritten, so an earlier
+        answer stays answerable after any correction.
+      </p>
+      <div class="asof-state" id="asof-label"></div>
     </div>
   </div>
 
-  <div class="panel">
-    <header>
-      <h2>Publication gates</h2>
-      <span class="note" id="gates-meta"></span>
-    </header>
-    <div class="body" id="gates"><div class="loading">&nbsp;</div></div>
-  </div>
-
-  <div class="panel">
-    <header>
-      <h2>Sellers behind the number</h2>
-      <span class="note" id="sellers-meta"></span>
-    </header>
-    <div id="sellers"><div class="loading">&nbsp;</div></div>
-  </div>
+  <div id="detail"></div>
 
 </div>
 
@@ -74,13 +74,13 @@
     <h2>How many sellers does the good have?</h2>
     <div class="prose">
       <p>
-        That single question decides whether an index over a token good is coherent,
-        and it is answerable before any estimator runs. Below, every contract in the
-        benchmark, drawn by the sellers offering the identical good.
+        That question decides whether an index over a token good is coherent, and it
+        is answerable before any estimator runs. Every contract in the benchmark,
+        drawn by the sellers offering the identical good:
       </p>
     </div>
     <div class="panel" style="margin-top:22px">
-      <header><h2>Price by seller, per contract</h2><span class="note">USD per million tokens</span></header>
+      <header><h2>Price by seller, all contracts</h2><span class="note">log scale &middot; USD per million tokens</span></header>
       <div class="body"><div id="cliff"><div class="loading">&nbsp;</div></div></div>
     </div>
     <div class="prose" style="margin-top:22px">
@@ -104,22 +104,6 @@
     </div>
   </section>
 
-  <section class="band">
-    <p class="kicker">the other half</p>
-    <h2>Open weights are a real market, and the spread proves it</h2>
-    <div class="prose">
-      <p>
-        The same weights are served by many independent providers competing on price.
-        That is where discovery actually happens, and it is the only place an index over
-        inference means anything.
-      </p>
-    </div>
-    <div class="panel" style="margin-top:22px">
-      <header><h2>Kimi K2.6, output tokens</h2><span class="note">USD per million</span></header>
-      <div class="body"><div class="spread" id="spread"><div class="loading">&nbsp;</div></div></div>
-    </div>
-  </section>
-
   <footer class="site">
     Methodology <span id="foot-version">--</span> &middot;
     prices read <span id="foot-read">--</span> &middot;
@@ -132,6 +116,6 @@
 
 </div>
 
-<script type="module" src="app.js?v=20260912a"></script>
+<script type="module" src="app.js?v=20260912c"></script>
 </body>
 </html>
