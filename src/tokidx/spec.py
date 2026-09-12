@@ -192,6 +192,17 @@ class Gates:
 
 DEFAULT_GATES = Gates()
 
+#: Decimal places a published value is stated to.
+#:
+#: Not cosmetic. The value is a weighted mean, and floating-point addition is
+#: not associative, so two runs that sum the same contributions in a different
+#: order can differ in the last bit. A number somebody settles against cannot
+#: be "about" anything, so the fixing is rounded once, here, and the rounded
+#: number is the published one. Four places is finer than any seller quotes.
+#:
+#: Found by a property test comparing two orderings of the same market.
+PUBLICATION_DECIMALS = 4
+
 #: Providers screened at this many robust sigma from the provider median.
 OUTLIER_SIGMAS = 3.0
 

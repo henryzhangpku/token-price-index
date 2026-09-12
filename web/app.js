@@ -1,6 +1,9 @@
 /**
  * The site renders what the pipeline decided. It recomputes nothing, so the
  * page and the CLI cannot disagree about a published number.
+ *
+ * Both pages load this file, so every renderer checks for its container first
+ * rather than assuming the dashboard's markup is present.
  */
 
 const $ = (sel) => document.querySelector(sel);
@@ -17,24 +20,22 @@ const fmt = (n, dp = 3) =>
 
 function initTheme() {
   const btn = $(".theme-toggle");
+  if (!btn) return;
   const stored = (() => {
     try { return localStorage.getItem("tokidx-theme"); } catch { return null; }
   })();
   if (stored) document.documentElement.setAttribute("data-theme", stored);
 
-  const label = () => {
-    const dark = document.documentElement.getAttribute("data-theme") === "dark"
-      || (!document.documentElement.getAttribute("data-theme")
-          && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    btn.textContent = dark ? "Light" : "Dark";
-  };
+  const isDark = () =>
+    document.documentElement.getAttribute("data-theme") === "dark"
+    || (!document.documentElement.getAttribute("data-theme")
+        && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  const label = () => { btn.textContent = isDark() ? "Light" : "Dark"; };
   label();
 
   btn.addEventListener("click", () => {
-    const dark = document.documentElement.getAttribute("data-theme") === "dark"
-      || (!document.documentElement.getAttribute("data-theme")
-          && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    const next = dark ? "light" : "dark";
+    const next = isDark() ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
     try { localStorage.setItem("tokidx-theme", next); } catch { /* private mode */ }
     label();
@@ -44,6 +45,7 @@ function initTheme() {
 /* ---------- the board --------------------------------------------------- */
 
 function renderBoard(data) {
+  if (!$("#board")) return;
   const rows = data.indices.map((idx) => {
     const contributing = idx.providers.filter((p) => !p.screened_out);
     const failed = idx.gates.filter((g) => !g.passed).map((g) => g.name.replace(/_/g, " "));
@@ -70,13 +72,26 @@ function renderBoard(data) {
     <tbody>${rows}</tbody></table>`;
 
   const withheld = data.indices.filter((i) => !i.published).length;
-  $("#board-meta").textContent =
-    `${data.observation_count} observations · ${withheld} of ${data.indices.length} withheld · USD per Mtok`;
+  const meta = $("#board-meta");
+  if (meta) {
+    meta.textContent =
+      `${data.observation_count} observations · ${withheld} of ${data.indices.length} withheld · USD per Mtok`;
+  }
+
+  const note = $("#onedate");
+  if (note) {
+    note.innerHTML =
+      `Prices were read once, on <strong>${escapeHtml(data.prices_read)}</strong>. `
+      + `There is one collection date, so there is no series and no chart is drawn &mdash; `
+      + `re-running a fixed table daily would manufacture a flat line that looks like `
+      + `data and is not. What can be shown from a single date is the cross-section below.`;
+  }
 }
 
 /* ---------- gates and sellers for one index ----------------------------- */
 
 function renderIndex(data, code) {
+  if (!$("#gates")) return;
   const idx = data.indices.find((i) => i.code === code) || data.indices[0];
 
   document.querySelectorAll("#board tbody tr").forEach((tr) => {
@@ -114,9 +129,49 @@ function renderIndex(data, code) {
       </tr>`).join("")}</tbody></table>`;
 }
 
+/* ---------- the cross-section ------------------------------------------- */
+
+function renderCliff(data) {
+  const host = $("#cliff");
+  if (!host) return;
+
+  // One shared log axis, because the contracts span input and output pricing
+  // and a linear axis would flatten every input series into the left margin.
+  const all = data.indices.flatMap((i) =>
+    i.providers.filter((p) => !p.screened_out).map((p) => p.price));
+  if (!all.length) { host.innerHTML = `<div class="loading">no prices</div>`; return; }
+  const lo = Math.log(Math.min(...all) * 0.8);
+  const hi = Math.log(Math.max(...all) * 1.25);
+  const at = (price) => (100 * (Math.log(price) - lo) / (hi - lo)).toFixed(2);
+
+  host.innerHTML = data.indices.map((idx) => {
+    const sellers = idx.providers.filter((p) => !p.screened_out);
+    const dots = sellers.map((p) =>
+      `<i style="left:${at(p.price)}%" title="${escapeHtml(p.provider)} $${fmt(p.price)}"></i>`
+    ).join("");
+    // Three states, not two. A good can be indexable in principle and still
+    // show no discovery, because its sellers happen to quote the same number.
+    const distinct = new Set(sellers.map((p) => p.price)).size;
+    let verdict;
+    if (!idx.indexable) {
+      verdict = `${sellers.length} sellers of <strong>different goods</strong>`;
+    } else if (distinct <= 1) {
+      verdict = `${sellers.length} sellers, <strong>one price</strong> &mdash; no spread`;
+    } else {
+      verdict = `${sellers.length} sellers, ${distinct} prices`;
+    }
+    return `<div class="cliff-row ${idx.indexable ? "" : "incoherent"}">
+      <span class="who">${escapeHtml(idx.code)}</span>
+      <span class="axis">${dots}</span>
+      <span class="verdict">${verdict}</span>
+    </div>`;
+  }).join("") + `<p class="axis-note">log scale, USD per million tokens</p>`;
+}
+
 /* ---------- the spread strip -------------------------------------------- */
 
 function renderSpread(data) {
+  if (!$("#spread")) return;
   const idx = data.indices.find((i) => i.code === "TIX-K26-OUT");
   if (!idx) return;
   const sellers = idx.providers.filter((p) => !p.screened_out);
@@ -137,11 +192,14 @@ fetch("data/fixings.json", { cache: "no-store" })
   .then((r) => r.json())
   .then((data) => {
     renderBoard(data);
+    renderCliff(data);
     renderSpread(data);
     renderIndex(data, "TIX-K26-OUT");
 
-    $("#foot-version").textContent = data.methodology_version;
-    $("#foot-read").textContent = data.prices_read;
+    const v = $("#foot-version");
+    const rd = $("#foot-read");
+    if (v) v.textContent = data.methodology_version;
+    if (rd) rd.textContent = data.prices_read;
 
     document.querySelectorAll("#board tbody tr").forEach((tr) => {
       tr.style.cursor = "pointer";
@@ -149,6 +207,9 @@ fetch("data/fixings.json", { cache: "no-store" })
     });
   })
   .catch((err) => {
-    $("#board").innerHTML =
-      `<div class="loading">could not load the fixings: ${escapeHtml(err.message)}</div>`;
+    const board = $("#board");
+    if (board) {
+      board.innerHTML =
+        `<div class="loading">could not load the fixings: ${escapeHtml(err.message)}</div>`;
+    }
   });

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Method &mdash; Token Price Index</title>
+<meta name="description" content="How a published token price becomes a fixing, and when it refuses to.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
+<link rel="stylesheet" href="style.css?v=20260912a">
+</head>
+<body>
+
+<div class="banner">
+  A demonstration of which parts of the inference market can carry a reference price.
+  Do not settle anything against these values.
+</div>
+
+<div class="topbar">
+  <a class="brand" href="index.html">tok<span>idx</span></a>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="method.html" aria-current="page">Method</a>
+    <a href="https://github.com/henryzhangpku/token-price-index">Source</a>
+    <button class="theme-toggle" type="button">Dark</button>
+  </nav>
+</div>
+
+<div class="wrap">
+
+  <section class="hero">
+    <h1>Method</h1>
+    <p>
+      The full document is <a href="https://github.com/henryzhangpku/token-price-index/blob/main/METHODOLOGY.md">METHODOLOGY.md</a>,
+      including the limitations. This page is the argument it makes.
+    </p>
+  </section>
+
+  <section class="band">
+    <p class="kicker">1 &middot; the question</p>
+    <h2>What is being measured</h2>
+    <div class="prose">
+      <p>
+        <strong>What did a million tokens of this model cost, from anyone who would
+        sell them, today?</strong> Not what a buyer negotiated, and not what the
+        market spent in aggregate &mdash; the price of one good, from the sellers
+        offering that same good.
+      </p>
+    </div>
+  </section>
+
+  <section class="band">
+    <p class="kicker">2 &middot; the central decision</p>
+    <h2>Which goods can carry an index, and which cannot</h2>
+    <div class="prose">
+      <p>
+        A benchmark measures price discovery, and discovery requires more than one
+        seller of an identical good. Open-weight models qualify: the same weights are
+        served by many independent providers competing on price. Proprietary frontier
+        models do not, because each has exactly one.
+      </p>
+      <p>
+        This is a property of the good, not of the data, so it is checked before
+        anything is collected. <code>TIX-FRONTIER-OUT</code> is refused by a gate
+        rather than by a shortage of inputs.
+      </p>
+    </div>
+  </section>
+
+  <section class="band">
+    <p class="kicker">3 &middot; the waterfall</p>
+    <h2>Rank inputs by what they prove</h2>
+    <div class="tw">
+      <table>
+        <thead><tr><th>tier</th><th>what it is</th><th>what it proves</th><th class="r">weight</th></tr></thead>
+        <tbody>
+          <tr><td>1 &middot; list</td><td>Published API rate card</td><td>Transactable today by anyone with a card</td><td class="r">1.00</td></tr>
+          <tr><td>2 &middot; aggregated</td><td>Seen through a router</td><td>A price, but possibly with the router's margin in it</td><td class="r">0.60</td></tr>
+          <tr><td>3 &middot; curated</td><td>Administrator's sourced entry</td><td>Someone checked it by hand on a date</td><td class="r">0.25</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p>
+        Note the difference from a compute-rental benchmark. There, a published rate
+        card proves only that somebody published a number. Here the top tier is
+        genuinely populated, because a token rate card <em>is</em> executable.
+      </p>
+    </div>
+  </section>
+
+  <section class="band">
+    <p class="kicker">4 &middot; restatement</p>
+    <h2>Everything is expressed as the standard contract, or discarded</h2>
+    <div class="tw">
+      <table>
+        <thead><tr><th>serving</th><th class="r">factor</th><th>why</th></tr></thead>
+        <tbody>
+          <tr><td>standard</td><td class="r">1.00</td><td>the benchmark good</td></tr>
+          <tr><td>batch</td><td class="r">2.00</td><td>published at 50% off by every major seller</td></tr>
+          <tr><td>cached</td><td class="r">10.00</td><td>cache reads run near a tenth of standard input</td></tr>
+          <tr><td>priority</td><td class="r">0.50</td><td>published at 2&times; by at least one seller</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p>
+        <strong>Two of these are close to observable, which is unusual for an
+        adjustment schedule.</strong> Anthropic publishes batch at 50% and cache reads
+        at roughly a tenth of standard input; OpenAI publishes the same two ratios. A
+        ratio published identically by two independent sellers is a market convention.
+        A ratio applied identically across every SKU of one seller is that seller's
+        discount policy and carries no information.
+      </p>
+      <p>
+        Cumulative adjustment is capped at <strong>5.0&times;</strong>, which binds on
+        the cache factor. Restating a cache read to standard multiplies by ten, so nine
+        tenths of the resulting number would come from this schedule rather than from
+        the seller. That is not an observation about standard pricing; it is the
+        schedule talking, and it is discarded. Batch at 2&times; survives, because half
+        the number is still the seller's.
+      </p>
+      <p>
+        An earlier draft set that ceiling at 10.5&times;, which no combination of
+        factors could reach &mdash; serving is a single enum and the context factor only
+        reduces. <strong>A ceiling nothing can touch is not a control.</strong> A test
+        caught it.
+      </p>
+    </div>
+  </section>
+
+  <section class="band">
+    <p class="kicker">5 &middot; estimation</p>
+    <h2>What the estimator does, and why</h2>
+    <div class="cards">
+      <div class="card">
+        <span class="label">One good per index</span>
+        <p>Input and output never blend. They are priced differently by every seller and consumed in different ratios, so any blend depends on a ratio nobody can observe.</p>
+      </div>
+      <div class="card">
+        <span class="label">One seller, one vote</span>
+        <p>Each provider collapses to a single median first. Serving forty models buys no more influence than serving one.</p>
+      </div>
+      <div class="card">
+        <span class="label">Screen robustly</span>
+        <p>Median absolute deviation &times; 1.4826, which has a 50% breakdown point &mdash; not standard deviation, which has none, because the outlier inflates the very yardstick measuring it.</p>
+      </div>
+      <div class="card">
+        <span class="label">Where MAD goes to zero</span>
+        <p>If every honest seller agrees exactly there is no scale left, so the screen falls back to a symmetric ratio band. A percentage test caps at 100% on the downside and could never catch a near-zero price.</p>
+      </div>
+      <div class="card">
+        <span class="label">A stated precision</span>
+        <p>Published to four decimal places, summed in a fixed order. Floating-point addition is not associative, so an unrounded mean can differ in its last bit between two runs over the same market. A property test found it.</p>
+      </div>
+      <div class="card">
+        <span class="label">Withholding is an outcome</span>
+        <p>A gap in a series is a fact about the market. An interpolated value is a fiction about it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <p class="kicker">6 &middot; gates</p>
+    <h2>Every one must hold</h2>
+    <div class="tw">
+      <table>
+        <thead><tr><th>gate</th><th class="r">threshold</th><th>and the objection to it</th></tr></thead>
+        <tbody>
+          <tr><td>indexable good</td><td class="r">required</td><td>A property of the good. Not arguable, which is why it is first.</td></tr>
+          <tr><td>min providers</td><td class="r">3</td><td><strong>The load-bearing one.</strong> A compute benchmark uses four. At four, nothing here prints at all.</td></tr>
+          <tr><td>min observations</td><td class="r">3</td><td>Follows from the provider floor in a market where each seller lists once.</td></tr>
+          <tr><td>max dispersion</td><td class="r">0.60</td><td>Looser than a compute benchmark's 0.45 &mdash; and currently idle. Both published fixings sit at 0.185 and 0.312.</td></tr>
+          <tr><td>max seller weight</td><td class="r">50%</td><td>Also idle. Three equal-tier sellers is 33% each.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p>
+        <strong>Two of the five gates are doing nothing today, and one is doing
+        everything.</strong> That is worth stating rather than hiding: the only reason
+        this index prints at all is a provider floor of three, and three is roughly the
+        maximum this market currently offers. The index is waiting for the market, not
+        the other way round.
+      </p>
+    </div>
+  </section>
+
+  <section class="band" id="limits">
+    <p class="kicker">7 &middot; stated plainly</p>
+    <h2>What this cannot do</h2>
+    <div class="prose">
+      <p>A methodology that only lists strengths is a marketing document.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="label">One collection date</span>
+        <p>Prices were read once. There is no time series, so no chart is drawn &mdash; re-running a fixed table daily would manufacture a flat line that looks like data and is not.</p>
+      </div>
+      <div class="card">
+        <span class="label">No transaction data</span>
+        <p>Every input is a published rate card. Nobody here observes what anyone paid, and enterprise inference is negotiated and invisible. This measures the retail tail.</p>
+      </div>
+      <div class="card">
+        <span class="label">No quality adjustment, and this is the deep one</span>
+        <p>Price per token falls while capability rises. A token is treated as a token, so a falling series cannot distinguish cheaper inference from better models. That is the hedonic problem official statisticians solve for computer prices &mdash; and here it may be the dominant term.</p>
+      </div>
+      <div class="card">
+        <span class="label">Model identity is assumed</span>
+        <p>Two sellers listing the same model may serve different quantisations, context limits or throughput. The contract pins the weights; it does not pin what you actually get.</p>
+      </div>
+      <div class="card">
+        <span class="label">No source adapters</span>
+        <p>One dated, sourced table read by hand. The collection architecture is real; the collection is not yet.</p>
+      </div>
+      <div class="card">
+        <span class="label">Thresholds are judgement</span>
+        <p>Unlike the compute benchmark's contributor-shift check &mdash; measured from 403 observations &mdash; nothing here is calibrated, because one collection date supports no calibration. The checks exist and report <code>not_evaluable</code> rather than passing quietly.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site">
+    Methodology <span id="foot-version">--</span> &middot;
+    <a href="index.html">Dashboard</a> &middot;
+    <a href="https://github.com/henryzhangpku/token-price-index/blob/main/METHODOLOGY.md">METHODOLOGY.md</a>
+    <br><br>
+    A study of which parts of the inference market can support a reference price.
+    It is a demonstration, not a benchmark.
+  </footer>
+
+</div>
+
+<script type="module" src="app.js?v=20260912a"></script>
+</body>
+</html>

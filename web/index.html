@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
-<link rel="stylesheet" href="style.css?v=20260908a">
+<link rel="stylesheet" href="style.css?v=20260912a">
 </head>
 <body>
 
@@ -20,8 +20,8 @@
 <div class="topbar">
   <a class="brand" href="index.html">tok<span>idx</span></a>
   <nav>
-    <a href="#method">Method</a>
-    <a href="#limits">Limits</a>
+    <a href="index.html" aria-current="page">Dashboard</a>
+    <a href="method.html">Method</a>
     <a href="https://github.com/henryzhangpku/token-price-index">Source</a>
     <button class="theme-toggle" type="button">Dark</button>
   </nav>
@@ -32,8 +32,8 @@
   <section class="hero">
     <h1>Some goods cannot carry an index. Saying so is the job.</h1>
     <p>
-      A daily price benchmark for LLM inference. Three of its five indices decline to
-      print today &mdash; and one of them cannot print at all, because the good it would
+      A price benchmark for LLM inference. Three of its five indices decline to
+      print &mdash; and one of them cannot print at all, because the good it would
       measure has exactly one seller.
     </p>
   </section>
@@ -44,6 +44,9 @@
       <span class="note" id="board-meta">loading&hellip;</span>
     </header>
     <div id="board"><div class="loading">reading the fixings&hellip;</div></div>
+    <div class="body">
+      <p class="onedate" id="onedate">&nbsp;</p>
+    </div>
   </div>
 
   <div class="panel">
@@ -68,8 +71,19 @@
 
   <section class="band" id="finding">
     <p class="kicker">the finding</p>
-    <h2>A frontier index is one seller&rsquo;s list price wearing an index&rsquo;s name</h2>
+    <h2>How many sellers does the good have?</h2>
     <div class="prose">
+      <p>
+        That single question decides whether an index over a token good is coherent,
+        and it is answerable before any estimator runs. Below, every contract in the
+        benchmark, drawn by the sellers offering the identical good.
+      </p>
+    </div>
+    <div class="panel" style="margin-top:22px">
+      <header><h2>Price by seller, per contract</h2><span class="note">USD per million tokens</span></header>
+      <div class="body"><div id="cliff"><div class="loading">&nbsp;</div></div></div>
+    </div>
+    <div class="prose" style="margin-top:22px">
       <p>
         A benchmark measures price discovery. Only Anthropic sells Opus&nbsp;5. Only
         OpenAI sells GPT-6 Astra. There is no second price for the same good, so there
@@ -106,62 +120,10 @@
     </div>
   </section>
 
-  <section class="band" id="method">
-    <p class="kicker">method</p>
-    <h2>What the estimator does, and why</h2>
-    <div class="cards">
-      <div class="card">
-        <span class="label">One good per index</span>
-        <p>Input and output never blend. They are priced differently by every seller and consumed in different ratios, so any blend depends on a ratio nobody can observe.</p>
-      </div>
-      <div class="card">
-        <span class="label">Rank inputs by what they prove</span>
-        <p>A published token price is transactable today by anyone with a card &mdash; so unlike compute rental, the top evidence tier is genuinely populated.</p>
-      </div>
-      <div class="card">
-        <span class="label">One seller, one vote</span>
-        <p>Each provider collapses to a single median. Serving forty models buys no more influence than serving one.</p>
-      </div>
-      <div class="card">
-        <span class="label">Screen robustly</span>
-        <p>Median absolute deviation, which has a 50% breakdown point, not standard deviation, which has none &mdash; the outlier inflates the yardstick measuring it.</p>
-      </div>
-      <div class="card">
-        <span class="label">Where MAD goes to zero</span>
-        <p>If every honest seller agrees exactly there is no scale left, so the screen falls back to a symmetric ratio band. A percentage test caps at 100% on the downside and could never catch a near-zero price.</p>
-      </div>
-      <div class="card">
-        <span class="label">Withholding is an outcome</span>
-        <p>A gap in a series is a fact about the market. An interpolated value is a fiction about it.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="limits">
-    <p class="kicker">stated plainly</p>
-    <h2>What this cannot do</h2>
-    <div class="prose">
-      <p>A methodology that only lists strengths is a marketing document. The full list runs to seven; these are the three that matter most.</p>
-    </div>
-    <div class="cards">
-      <div class="card">
-        <span class="label">No transaction data</span>
-        <p>Every input is a published rate card. Nobody here observes what anyone paid, and enterprise inference &mdash; where the volume is &mdash; is negotiated and invisible. This measures the retail tail.</p>
-      </div>
-      <div class="card">
-        <span class="label">No quality adjustment, and this is the deep one</span>
-        <p>Price per token falls while capability rises. A token is treated as a token, so a falling series cannot distinguish cheaper inference from better models. That is the hedonic adjustment problem official statisticians solve for computer prices &mdash; and for a good improving this fast it may be the dominant term.</p>
-      </div>
-      <div class="card">
-        <span class="label">Model identity is assumed, not verified</span>
-        <p>Two sellers listing the same model may serve different quantisations, context limits or throughput. The contract pins the weights; it does not pin what you actually get.</p>
-      </div>
-    </div>
-  </section>
-
   <footer class="site">
     Methodology <span id="foot-version">--</span> &middot;
     prices read <span id="foot-read">--</span> &middot;
+    <a href="method.html">Method</a> &middot;
     <a href="https://github.com/henryzhangpku/token-price-index/blob/main/METHODOLOGY.md">METHODOLOGY.md</a>
     <br><br>
     A study of which parts of the inference market can support a reference price.
@@ -170,6 +132,6 @@
 
 </div>
 
-<script type="module" src="app.js?v=20260908a"></script>
+<script type="module" src="app.js?v=20260912a"></script>
 </body>
 </html>
