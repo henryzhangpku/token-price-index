@@ -196,6 +196,138 @@ observation count, and dispersion. Every gate must hold.
 print. A gap in a series is a fact about the market; an interpolated value is a
 fiction about it.
 
+## Commands
+
+```bash
+uv run tokidx collect                     # read every seller once, write a dated snapshot
+uv run tokidx publish                     # the board: what printed, what refused, why
+uv run tokidx explain TIX-GLM53-OUT       # one fixing, from published prices to the decision
+uv run tokidx contracts                   # the goods, the weights, the gates
+uv run tokidx calibrate                   # test the serving factors against what sellers charge
+uv run tokidx export-web --out web/data   # the JSON the static site reads
+```
+
+## Demo site
+
+<https://henryzhangpku.github.io/token-price-index/>
+
+The dashboard renders what the pipeline decided and recomputes nothing, so the
+page and the CLI cannot disagree about a published number. CI rebuilds the
+bundle and fails if the committed copy differs.
+
+Asset URLs are stamped with a content hash and CI checks the stamps, because a
+stale version string keeps an old script live while the repository holds the
+new one — a bug with no explanation anywhere in the source.
+
+## The durable record
+
+Two things are committed, and between them they are the whole audit trail.
+
+`data/observations/YYYY-MM-DD.json` — exactly what each seller published, as
+read, one file per collection date. Collection and estimation are separate
+processes for this reason: a pipeline that fetches and computes in one pass can
+never show that a past value follows from its own inputs, because those inputs
+are gone by the time anyone asks.
+
+`web/data/fixings.json` — what was published, and the gates behind it.
+
+The SQLite store is derived and gitignored. It is bitemporal and append-only: a
+correction writes a new revision, stamps the old one, and must carry a reason.
+`as_of(index_date, knowledge_time)` answers what the tape said for a date *as
+known at a moment*, which is the only question a settlement dispute can use.
+
+## Sources
+
+| source | what it gives | tier |
+|---|---|---|
+| [OpenRouter model endpoints](https://openrouter.ai/api/v1/models) | per-seller pricing for one model, no auth | 2 · aggregated |
+
+**One venue.** Thirty-seven sellers behind a single source is thirty-seven
+sellers and one point of failure — if it changed schema or went away, the seller
+count would keep reporting thirty-seven right up until it reported none. That is
+why collected observations sit at the aggregated tier rather than the list tier,
+and why the venue count is printed next to the seller count.
+
+## Layout
+
+```
+src/tokidx/
+  spec.py         contracts, tiers, factors, gates        <- the methodology
+  models.py       record types; raw observation -> quote -> fixing
+  collect.py      the live source, and the venue caveat
+  sources.py      dated snapshots on disk; collection is not estimation
+  normalize.py    restate onto the contract, or reject with a reason
+  estimator.py    seller medians -> screen -> weights -> value, or refuse
+  quality.py      staleness, dropout, level shifts; not_evaluable is an answer
+  store.py        bitemporal, append-only; the as-of query and its index
+  pipeline.py     collect, restate, estimate, gate -- one path
+  web.py          the bundle the site reads
+  cli.py          what a benchmark administrator actually does
+```
+
+## What came out of building it
+
+The long form, with the numbers and the workings, is
+[docs/FINDINGS.md](docs/FINDINGS.md).
+
+
+**The dispersion gate read perfect agreement on a market spanning six times.**
+Fifteen of twenty-seven sellers of the same weights quote an identical price, so
+the median *is* that price, more than half the deviations from it are exactly
+zero, and MAD is zero. Qn fails identically — with a majority at one number,
+over a quarter of all pairwise differences are zero. Any statistic asking what a
+typical deviation from the middle looks like answers zero when the middle is
+most of the mass. Dispersion is now the ninetieth percentile of deviation, and
+the change has teeth: MiniMax M3 was publishing at 0.000 across a 3.1× market
+and now withholds at 0.920.
+
+**The same defect does not exist in the compute benchmark, and the reason is
+market structure rather than code.** No two GPU providers quote an identical
+price — modal share is 1 of 15, 1 of 9, 1 of 6 — because rental prices are set
+independently from hardware, power and utilisation. Token prices are *copied*:
+sellers hosting someone else's open weights adopt the publisher's reference
+rate. The right scale estimator depends on how a market forms prices, and the
+two repositories use different ones for that reason.
+
+**Counting sellers overstates independence twice over.** Once through venues —
+thirty-seven sellers, one source. Once through prices — a majority quoting one
+number are not independent opinions. Both are measured and printed rather than
+left for a reader to work out.
+
+**A ceiling nothing could reach is not a control.** The cumulative adjustment cap
+was 10.5×, which no combination of factors could touch: serving is a single enum
+and the context factor only reduces. A test caught it. It is 5.0× now, which
+binds on the cache factor.
+
+**A fixing belongs to its inputs, not to the clock.** The index date came from
+`date.today()`, so re-running an unchanged observation set on a later day
+produced a later fixing. CI caught it when the committed bundle stopped matching
+a fresh one. That is the carry-forward behaviour the gates exist to prevent,
+arriving through the back door.
+
+**A published number needs a stated precision.** Two orderings of the same market
+produced values differing in the last bit, because floating-point addition is
+not associative and nothing rounded. Found by a property test. Contributions are
+summed in a fixed order and rounded once, at four decimal places.
+
+## Tests
+
+```bash
+uv run pytest -q            # 42 tests
+uvx ruff check src tests
+```
+
+`tests/test_properties.py` generates markets rather than choosing them, on a
+coarse price grid so that exact ties — the case that breaks a median-based
+screen — actually occur. Two of the findings above were found by it, on its
+first runs.
+
+`tests/test_store.py` asserts a **query plan**: the as-of index ends in
+`revision` so the planner can walk backwards and stop at the first row past the
+filter, rather than materialising a temporary B-tree to sort. A schema change
+that reintroduces the sort fails the suite instead of being discovered under
+load.
+
 ## What this cannot do
 
 The full list is in [METHODOLOGY.md](METHODOLOGY.md) section 6. The three that
