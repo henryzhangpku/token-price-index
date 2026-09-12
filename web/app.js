@@ -135,40 +135,54 @@ function chartPanel(idx) {
       <div class="body"><div class="loading">no seller survived restatement</div></div></div>`;
   }
 
-  const W = 720, H = 250, L = 54, R = 18, T = 18, B = 58;
+  // A strip plot, not a line. Price on the axis and one dot per seller,
+  // stacked where sellers quote the same number -- which is the shape this
+  // market actually has. Twenty-seven sellers plotted along a seller axis
+  // collide into an unreadable row; plotted against price they show the mode.
+  const W = 720, H = 210, L = 20, R = 20, T = 26, B = 46;
   const prices = sellers.map((p) => p.price);
-  const values = idx.published ? prices.concat([idx.value]) : prices;
-  let lo = Math.min(...values), hi = Math.max(...values);
-  if (hi - lo < 1e-9) { lo -= Math.max(lo * 0.05, 0.01); hi += Math.max(hi * 0.05, 0.01); }
-  const pad = (hi - lo) * 0.18;
+  let lo = Math.min(...prices), hi = Math.max(...prices);
+  if (hi - lo < 1e-9) { const c = hi || 1; lo = c * 0.85; hi = c * 1.15; }
+  const pad = (hi - lo) * 0.10;
   lo -= pad; hi += pad;
+  const x = (v) => L + (W - L - R) * (v - lo) / (hi - lo);
 
-  const x = (i) => L + (sellers.length === 1
-    ? (W - L - R) / 2
-    : i * (W - L - R) / (sellers.length - 1));
-  const y = (v) => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  const baseline = H - B;
+  const step = 13, radius = 5;
 
-  const ticks = [lo + (hi - lo) * 0.08, (lo + hi) / 2, hi - (hi - lo) * 0.08];
-  const grid = ticks.map((t) =>
-    `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}"/>
-     <text class="tick" x="${L - 9}" y="${(y(t) + 4).toFixed(1)}" text-anchor="end">${fmt(t, 2)}</text>`
+  // Stack collisions upward from the baseline.
+  const placed = [];
+  const dots = sellers.map((p) => {
+    const cx = x(p.price);
+    const level = placed.filter((q) => Math.abs(q - cx) < radius * 1.9).length;
+    placed.push(cx);
+    const cy = baseline - 8 - level * step;
+    return `<circle class="dot" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${radius}">
+        <title>${escapeHtml(p.provider)} — $${fmt(p.price)}</title></circle>`;
+  }).join("");
+
+  const ticks = [lo + (hi - lo) * 0.02, (lo + hi) / 2, hi - (hi - lo) * 0.02].map((t) =>
+    `<text class="tick" x="${x(t).toFixed(1)}" y="${H - B + 20}" text-anchor="middle">$${fmt(t, 3)}</text>`
   ).join("");
 
-  const dots = sellers.map((p, i) =>
-    `<circle class="dot" cx="${x(i).toFixed(1)}" cy="${y(p.price).toFixed(1)}" r="5">
-       <title>${escapeHtml(p.provider)} — $${fmt(p.price)}</title></circle>
-     <text class="who" x="${x(i).toFixed(1)}" y="${H - B + 22}" text-anchor="middle">${escapeHtml(p.provider)}</text>
-     <text class="amt" x="${x(i).toFixed(1)}" y="${(y(p.price) - 12).toFixed(1)}" text-anchor="middle">${fmt(p.price, 2)}</text>`
-  ).join("");
-
-  const fixingLine = idx.published
-    ? `<line class="fixing" x1="${L}" x2="${W - R}" y1="${y(idx.value).toFixed(1)}" y2="${y(idx.value).toFixed(1)}"/>
-       <text class="fixing-label" x="${W - R}" y="${(y(idx.value) - 8).toFixed(1)}" text-anchor="end">fixing $${fmt(idx.value)}</text>`
+  const fixing = idx.published
+    ? `<line class="fixing" x1="${x(idx.value).toFixed(1)}" x2="${x(idx.value).toFixed(1)}"
+             y1="${T - 8}" y2="${baseline}"/>
+       <text class="fixing-label" x="${x(idx.value).toFixed(1)}" y="${T - 12}" text-anchor="middle">fixing $${fmt(idx.value)}</text>`
     : "";
 
-  const legend = idx.published
-    ? `<span class="key dot-key">seller price</span><span class="key line-key">published fixing</span>`
-    : `<span class="key dot-key">seller price</span><span class="key none-key">withheld &mdash; no value printed</span>`;
+  const mode = (() => {
+    const counts = {};
+    for (const p of sellers) counts[p.price] = (counts[p.price] || 0) + 1;
+    const [price, n] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    return { price: Number(price), n: Number(n) };
+  })();
+
+  const note = mode.n > 1
+    ? `<strong>${mode.n} of ${sellers.length}</strong> sellers quote exactly $${fmt(mode.price)}. `
+      + `A seller count says this market is competitive; the prices say most of it is anchored, `
+      + `and the spread lives in the tails.`
+    : `Every seller quotes a different price.`;
 
   return `<div class="panel">
     <header>
@@ -178,15 +192,15 @@ function chartPanel(idx) {
     </header>
     <div class="body">
       <svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
-           aria-label="Price by seller for ${escapeHtml(idx.code)}">
-        ${grid}${fixingLine}${dots}
+           aria-label="Price distribution across sellers for ${escapeHtml(idx.code)}">
+        <line class="grid" x1="${L}" x2="${W - R}" y1="${baseline}" y2="${baseline}"/>
+        ${fixing}${dots}${ticks}
       </svg>
-      <div class="legend">${legend}</div>
-      <p class="chart-note">
-        The compute benchmark charts a fixing across dates. This one has a single
-        collection date, so the same slot plots the cross-section instead &mdash; every
-        seller of the identical good, and where the fixing landed among them.
-      </p>
+      <div class="legend">
+        <span class="key dot-key">one seller</span>
+        ${idx.published ? '<span class="key line-key">published fixing</span>' : '<span class="key none-key">withheld</span>'}
+      </div>
+      <p class="chart-note">${note}</p>
     </div>
   </div>`;
 }
