@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: [web/**, src/**, .github/workflows/pages.yml]
   workflow_run:
-    workflows: [ci]
+    workflows: [ci, "daily fixing"]
     types: [completed]
   workflow_dispatch:
 

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from .pipeline import default_index_date, run_all
-from .sources import COLLECTED_AT, all_observations
+from .sources import all_observations, collected_at, collection_dates
 from .spec import (
     CONTRACTS,
     DEFAULT_GATES,
@@ -35,7 +35,8 @@ def build_bundle(index_date: date | None = None) -> dict[str, Any]:
 
     return {
         "index_date": day.isoformat(),
-        "prices_read": COLLECTED_AT.date().isoformat(),
+        "prices_read": collected_at().date().isoformat(),
+        "collection_dates": collection_dates(),
         "methodology_version": METHODOLOGY_VERSION,
         "observation_count": len(all_observations()),
         "disclaimer": (

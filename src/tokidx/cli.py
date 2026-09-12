@@ -13,7 +13,7 @@ from rich.table import Table
 
 from .normalize import serving_check
 from .pipeline import default_index_date, run, run_all
-from .sources import COLLECTED_AT, all_observations
+from .sources import all_observations, collected_at
 from .spec import (
     CONTRACTS,
     DEFAULT_GATES,
@@ -39,7 +39,7 @@ def publish(index_date: str | None = typer.Option(None, "--date")) -> None:
     fixings = run_all(day)
 
     console.print(Panel(
-        f"[bold]{day}[/]  ·  prices read {COLLECTED_AT:%Y-%m-%d}  ·  "
+        f"[bold]{day}[/]  ·  prices read {collected_at():%Y-%m-%d}  ·  "
         f"{len(all_observations())} observations",
         expand=False,
     ))
@@ -279,6 +279,66 @@ def export_web(
     day = date.fromisoformat(index_date) if index_date else default_index_date()
     path = write_bundle(Path(out), day)
     console.print(f"  wrote [bold]{path}[/]  ({path.stat().st_size:,} bytes)")
+
+
+@app.command()
+def collect(
+    out: str | None = typer.Option(None, help="Directory for snapshots"),
+) -> None:
+    """Read every seller's price once, and write down exactly what was seen.
+
+    Collection is separate from estimation on purpose. A pipeline that fetches
+    and computes in one pass can never show that a past value follows from its
+    own inputs, because those inputs are gone by the time anyone asks.
+    """
+    from datetime import UTC, datetime
+    from pathlib import Path
+
+    from .collect import collect as fetch
+    from .collect import venue_breakdown
+    from .sources import write_snapshot
+
+    now = datetime.now(UTC)
+    with console.status("reading sellers..."):
+        observations, venues = fetch(now)
+
+    if not observations:
+        for venue in venues:
+            console.print(f"[yellow]{venue.venue}: {venue.detail}[/]")
+        console.print("[yellow]nothing collected; no snapshot written[/]")
+        raise typer.Exit(1)
+
+    path = write_snapshot(
+        observations, now,
+        venues=[v.__dict__ for v in venues],
+        directory=Path(out) if out else None,
+    )
+
+    t = _table(title="[bold]collected[/]", title_justify="left")
+    for col in ("venue", "sellers", "observations", "note"):
+        t.add_column(col, justify="right" if col in ("sellers", "observations") else "left")
+    breakdown = venue_breakdown(observations)
+    for venue in venues:
+        t.add_row(venue.venue, str(breakdown.get(venue.venue, 0)),
+                  str(venue.observations), venue.detail)
+    console.print()
+    console.print(t)
+
+    # The number that matters more than the seller count. A hundred sellers
+    # behind one venue is one source of failure, not a hundred.
+    if len(breakdown) == 1:
+        only = next(iter(breakdown))
+        console.print()
+        console.print(
+            f"  [yellow]every observation came through one venue ({only}).[/]"
+        )
+        console.print(
+            "  [dim]seller count measures the market; venue count measures the sample.[/]"
+        )
+    console.print()
+    console.print(f"  wrote [bold]{path}[/]")
+    console.print()
+
 
 
 if __name__ == "__main__":

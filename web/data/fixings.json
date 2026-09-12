@@ -1,8 +1,11 @@
 {
- "index_date": "2026-09-08",
- "prices_read": "2026-09-08",
+ "index_date": "2026-09-12",
+ "prices_read": "2026-09-12",
+ "collection_dates": [
+  "2026-09-12"
+ ],
  "methodology_version": "0.1.0",
- "observation_count": 24,
+ "observation_count": 97,
  "disclaimer": "A demonstration of which parts of the inference market can carry a reference price. Do not settle anything against these values.",
  "spec": {
   "tier_weights": {
@@ -28,13 +31,13 @@
  },
  "indices": [
   {
-   "code": "TIX-K26-OUT",
-   "display_name": "Kimi K2.6 output",
-   "model": "kimi-k2.6",
+   "code": "TIX-GLM53-OUT",
+   "display_name": "GLM 5.3 Flash output",
+   "model": "z-ai/glm-5.3-flash",
    "direction": "output",
    "indexable": true,
-   "value": 4.0,
-   "dispersion": 0.185325,
+   "value": 0.3305,
+   "dispersion": 0.0,
    "published": true,
    "withheld_reason": null,
    "gates": [
@@ -46,58 +49,274 @@
     {
      "name": "min_providers",
      "passed": true,
-     "detail": "3 of 3 required"
+     "detail": "27 of 3 required"
     },
     {
      "name": "min_observations",
      "passed": true,
-     "detail": "4 of 3 required"
+     "detail": "27 of 3 required"
     },
     {
      "name": "dispersion",
      "passed": true,
-     "detail": "0.185 against ceiling 0.6"
+     "detail": "0.000 against ceiling 0.6"
     }
    ],
    "providers": [
     {
-     "provider": "deepinfra",
-     "price": 3.5,
-     "quotes": 2,
-     "tier": 1,
-     "weight": 1.0,
+     "provider": "DeepInfra",
+     "price": 0.1625,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
      "screened_out": false,
      "screen_reason": null
     },
     {
-     "provider": "fireworks",
-     "price": 4.0,
+     "provider": "Relace",
+     "price": 0.195,
      "quotes": 1,
-     "tier": 1,
-     "weight": 1.0,
+     "tier": 2,
+     "weight": 0.6,
      "screened_out": false,
      "screen_reason": null
     },
     {
-     "provider": "together",
-     "price": 4.5,
+     "provider": "Morph",
+     "price": 0.2275,
      "quotes": 1,
-     "tier": 1,
-     "weight": 1.0,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Wafer",
+     "price": 0.2275,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "StreamLake",
+     "price": 0.243425,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "GMICloud",
+     "price": 0.24375,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Novita",
+     "price": 0.286,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Makora",
+     "price": 0.3055,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "BaseTen",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Cloudflare",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "CoreWeave",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Crusoe",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "DigitalOcean",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Fireworks",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Friendli",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Near AI",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Parasail",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Phala",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Sail Research",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "SiliconFlow",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Together",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Venice",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Z.AI",
+     "price": 0.325,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "NextBit",
+     "price": 0.3835,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Io Net",
+     "price": 0.4,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Reka",
+     "price": 0.4,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Modal",
+     "price": 0.975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
      "screened_out": false,
      "screen_reason": null
     }
    ],
-   "rejections": 20
+   "rejections": 70
   },
   {
-   "code": "TIX-K26-IN",
-   "display_name": "Kimi K2.6 input",
-   "model": "kimi-k2.6",
+   "code": "TIX-GLM53-IN",
+   "display_name": "GLM 5.3 Flash input",
+   "model": "z-ai/glm-5.3-flash",
    "direction": "input",
    "indexable": true,
-   "value": 0.9667,
-   "dispersion": 0.3121263157894736,
+   "value": 0.0989,
+   "dispersion": 0.0,
    "published": true,
    "withheld_reason": null,
    "gates": [
@@ -109,60 +328,456 @@
     {
      "name": "min_providers",
      "passed": true,
-     "detail": "3 of 3 required"
+     "detail": "27 of 3 required"
     },
     {
      "name": "min_observations",
      "passed": true,
-     "detail": "4 of 3 required"
+     "detail": "27 of 3 required"
     },
     {
      "name": "dispersion",
      "passed": true,
-     "detail": "0.312 against ceiling 0.6"
+     "detail": "0.000 against ceiling 0.6"
     }
    ],
    "providers": [
     {
-     "provider": "deepinfra",
-     "price": 0.75,
+     "provider": "DeepInfra",
+     "price": 0.04875,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Relace",
+     "price": 0.0585,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Morph",
+     "price": 0.065,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Wafer",
+     "price": 0.065,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "StreamLake",
+     "price": 0.073027,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "GMICloud",
+     "price": 0.073125,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Novita",
+     "price": 0.0858,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Makora",
+     "price": 0.091,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "BaseTen",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Cloudflare",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "CoreWeave",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Crusoe",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "DigitalOcean",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Fireworks",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Friendli",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Near AI",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Parasail",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Phala",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Sail Research",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "SiliconFlow",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Together",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Venice",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Z.AI",
+     "price": 0.0975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "NextBit",
+     "price": 0.11505,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Io Net",
+     "price": 0.12,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Reka",
+     "price": 0.12,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Modal",
+     "price": 0.2925,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    }
+   ],
+   "rejections": 70
+  },
+  {
+   "code": "TIX-K3-OUT",
+   "display_name": "Kimi K3 output",
+   "model": "moonshotai/kimi-k3",
+   "direction": "output",
+   "indexable": true,
+   "value": 9.4027,
+   "dispersion": 0.11119499999999988,
+   "published": true,
+   "withheld_reason": null,
+   "gates": [
+    {
+     "name": "indexable_good",
+     "passed": true,
+     "detail": "open weights, multiple sellers"
+    },
+    {
+     "name": "min_providers",
+     "passed": true,
+     "detail": "16 of 3 required"
+    },
+    {
+     "name": "min_observations",
+     "passed": true,
+     "detail": "19 of 3 required"
+    },
+    {
+     "name": "dispersion",
+     "passed": true,
+     "detail": "0.111 against ceiling 0.6"
+    }
+   ],
+   "providers": [
+    {
+     "provider": "Sail Research",
+     "price": 7.507627,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Relace",
+     "price": 7.8,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Makora",
+     "price": 8.2875,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Wafer",
+     "price": 8.2875,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "DigitalOcean",
+     "price": 8.4175,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "DeepInfra",
+     "price": 9.2625,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Phala",
+     "price": 9.2625,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "BaseTen",
+     "price": 9.75,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Chutes",
+     "price": 9.75,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Modal",
+     "price": 9.75,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Moonshot AI",
+     "price": 9.75,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Parasail",
+     "price": 9.75,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Together",
+     "price": 9.75,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Fireworks",
+     "price": 10.725,
+     "quotes": 3,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Morph",
+     "price": 11.18,
      "quotes": 2,
-     "tier": 1,
-     "weight": 1.0,
+     "tier": 2,
+     "weight": 0.6,
      "screened_out": false,
      "screen_reason": null
     },
     {
-     "provider": "fireworks",
-     "price": 0.95,
+     "provider": "Alibaba",
+     "price": 11.2125,
      "quotes": 1,
-     "tier": 1,
-     "weight": 1.0,
-     "screened_out": false,
-     "screen_reason": null
-    },
-    {
-     "provider": "together",
-     "price": 1.2,
-     "quotes": 1,
-     "tier": 1,
-     "weight": 1.0,
+     "tier": 2,
+     "weight": 0.6,
      "screened_out": false,
      "screen_reason": null
     }
    ],
-   "rejections": 20
+   "rejections": 78
   },
   {
-   "code": "TIX-GLM5-OUT",
-   "display_name": "GLM 5.x output",
-   "model": "glm-5",
+   "code": "TIX-DSV41-OUT",
+   "display_name": "DeepSeek V4.1 Flash output",
+   "model": "deepseek/deepseek-v4.1-flash",
    "direction": "output",
    "indexable": true,
-   "value": null,
-   "dispersion": null,
-   "published": false,
-   "withheld_reason": "min_providers: 2 of 3 required; min_observations: 2 of 3 required; dispersion: not computable below three providers",
+   "value": 0.7008,
+   "dispersion": 0.1710692307692307,
+   "published": true,
+   "withheld_reason": null,
    "gates": [
     {
      "name": "indexable_good",
@@ -171,52 +786,142 @@
     },
     {
      "name": "min_providers",
-     "passed": false,
-     "detail": "2 of 3 required"
+     "passed": true,
+     "detail": "12 of 3 required"
     },
     {
      "name": "min_observations",
-     "passed": false,
-     "detail": "2 of 3 required"
+     "passed": true,
+     "detail": "12 of 3 required"
     },
     {
      "name": "dispersion",
-     "passed": false,
-     "detail": "not computable below three providers"
+     "passed": true,
+     "detail": "0.171 against ceiling 0.6"
     }
    ],
    "providers": [
     {
-     "provider": "fireworks",
-     "price": 4.4,
+     "provider": "DeepInfra",
+     "price": 0.39,
      "quotes": 1,
-     "tier": 1,
-     "weight": 1.0,
+     "tier": 2,
+     "weight": 0.6,
      "screened_out": false,
      "screen_reason": null
     },
     {
-     "provider": "together",
-     "price": 4.4,
+     "provider": "DeepSeek",
+     "price": 0.39,
      "quotes": 1,
-     "tier": 1,
-     "weight": 1.0,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Fireworks",
+     "price": 0.429,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Morph",
+     "price": 0.585,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "GMICloud",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Modal",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Novita",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Parasail",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "SiliconFlow",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Wafer",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Io Net",
+     "price": 0.96,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Venice",
+     "price": 0.975,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
      "screened_out": false,
      "screen_reason": null
     }
    ],
-   "rejections": 22
+   "rejections": 85
   },
   {
-   "code": "TIX-MM27-OUT",
-   "display_name": "MiniMax M2.7 output",
-   "model": "minimax-m2.7",
+   "code": "TIX-MM3-OUT",
+   "display_name": "MiniMax M3 output",
+   "model": "minimax/minimax-m3",
    "direction": "output",
    "indexable": true,
-   "value": null,
-   "dispersion": null,
-   "published": false,
-   "withheld_reason": "min_providers: 2 of 3 required; min_observations: 2 of 3 required; dispersion: not computable below three providers",
+   "value": 0.9231,
+   "dispersion": 0.0,
+   "published": true,
+   "withheld_reason": null,
    "gates": [
     {
      "name": "indexable_good",
@@ -225,52 +930,142 @@
     },
     {
      "name": "min_providers",
-     "passed": false,
-     "detail": "2 of 3 required"
+     "passed": true,
+     "detail": "12 of 3 required"
     },
     {
      "name": "min_observations",
-     "passed": false,
-     "detail": "2 of 3 required"
+     "passed": true,
+     "detail": "12 of 3 required"
     },
     {
      "name": "dispersion",
-     "passed": false,
-     "detail": "not computable below three providers"
+     "passed": true,
+     "detail": "0.000 against ceiling 0.6"
     }
    ],
    "providers": [
     {
-     "provider": "fireworks",
-     "price": 1.2,
+     "provider": "GMICloud",
+     "price": 0.624,
      "quotes": 1,
-     "tier": 1,
-     "weight": 1.0,
+     "tier": 2,
+     "weight": 0.6,
      "screened_out": false,
      "screen_reason": null
     },
     {
-     "provider": "together",
-     "price": 1.2,
+     "provider": "DeepInfra",
+     "price": 0.715,
      "quotes": 1,
-     "tier": 1,
-     "weight": 1.0,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "CoreWeave",
+     "price": 0.768,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "AtlasCloud",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Minimax",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Novita",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Parasail",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "StreamLake",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Together",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "Venice",
+     "price": 0.78,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "SambaNova",
+     "price": 1.56,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
+     "screened_out": false,
+     "screen_reason": null
+    },
+    {
+     "provider": "ModelRun",
+     "price": 1.95,
+     "quotes": 1,
+     "tier": 2,
+     "weight": 0.6,
      "screened_out": false,
      "screen_reason": null
     }
    ],
-   "rejections": 22
+   "rejections": 85
   },
   {
    "code": "TIX-FRONTIER-OUT",
-   "display_name": "Frontier proprietary output",
-   "model": "frontier",
+   "display_name": "GPT-6 Astra output",
+   "model": "openai/gpt-6-astra",
    "direction": "output",
    "indexable": false,
    "value": null,
    "dispersion": null,
    "published": false,
-   "withheld_reason": "indexable_good: proprietary model: one seller per model, so cross-seller price discovery does not exist; min_providers: 2 of 3 required; dispersion: not computable below three providers",
+   "withheld_reason": "indexable_good: proprietary model: one seller per model, so cross-seller price discovery does not exist; min_providers: 0 of 3 required; min_observations: 0 of 3 required; dispersion: not computable below three providers",
    "gates": [
     {
      "name": "indexable_good",
@@ -280,12 +1075,12 @@
     {
      "name": "min_providers",
      "passed": false,
-     "detail": "2 of 3 required"
+     "detail": "0 of 3 required"
     },
     {
      "name": "min_observations",
-     "passed": true,
-     "detail": "4 of 3 required"
+     "passed": false,
+     "detail": "0 of 3 required"
     },
     {
      "name": "dispersion",
@@ -293,27 +1088,8 @@
      "detail": "not computable below three providers"
     }
    ],
-   "providers": [
-    {
-     "provider": "openai",
-     "price": 35.0,
-     "quotes": 2,
-     "tier": 1,
-     "weight": 1.0,
-     "screened_out": false,
-     "screen_reason": null
-    },
-    {
-     "provider": "anthropic",
-     "price": 37.5,
-     "quotes": 2,
-     "tier": 1,
-     "weight": 1.0,
-     "screened_out": false,
-     "screen_reason": null
-    }
-   ],
-   "rejections": 20
+   "providers": [],
+   "rejections": 97
   }
  ]
 }

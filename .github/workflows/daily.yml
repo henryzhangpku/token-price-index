@@ -1,0 +1,80 @@
+name: daily fixing
+
+# 13:20 UTC. Deliberately off the hour: every scheduled workflow on GitHub
+# asking for :00 lands in the same queue, and a benchmark that wants a
+# consistent capture time should not compete for it.
+#
+# The job collects once, writes a dated snapshot, computes the fixing from
+# that snapshot, and commits both. Collection and estimation stay separate for
+# the reason stated in sources.py -- a pipeline that fetches and computes in
+# one pass can never show that a past value follows from its own inputs.
+
+on:
+  schedule:
+    - cron: "20 13 * * *"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why this run was triggered by hand"
+        required: false
+        default: "manual"
+
+permissions:
+  contents: write
+
+# Never two fixings at once, and never cancel one half-written.
+concurrency:
+  group: daily-fixing
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: install
+        run: uv sync --frozen
+
+      - name: lint
+        run: uvx ruff check src tests
+
+      - name: test
+        run: uv run pytest -q
+
+      - name: collect
+        run: uv run tokidx collect
+
+      - name: publish the fixing
+        run: uv run tokidx publish
+
+      - name: rebuild the site bundle
+        run: uv run tokidx export-web --out web/data
+
+      - name: commit the tape
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/observations web/data
+          if git diff --cached --quiet; then
+            echo "nothing changed; no commit" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git commit -m "fixing $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: summary
+        if: always()
+        run: |
+          {
+            echo "### Daily fixing"
+            echo ""
+            echo '```'
+            uv run tokidx publish 2>&1 | sed -n '1,40p' || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

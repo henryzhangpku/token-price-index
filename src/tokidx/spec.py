@@ -129,40 +129,51 @@ class Contract:
 
 
 CONTRACTS: dict[str, Contract] = {
-    # -- open weights: genuinely multi-seller, genuinely indexable ----------
-    "TIX-K26-OUT": Contract(
-        code="TIX-K26-OUT",
-        display_name="Kimi K2.6 output",
-        model="kimi-k2.6",
+    # -- open weights: many independent sellers of identical weights --------
+    "TIX-GLM53-OUT": Contract(
+        code="TIX-GLM53-OUT",
+        display_name="GLM 5.3 Flash output",
+        model="z-ai/glm-5.3-flash",
         direction=Direction.OUTPUT,
         open_weights=True,
     ),
-    "TIX-K26-IN": Contract(
-        code="TIX-K26-IN",
-        display_name="Kimi K2.6 input",
-        model="kimi-k2.6",
+    "TIX-GLM53-IN": Contract(
+        code="TIX-GLM53-IN",
+        display_name="GLM 5.3 Flash input",
+        model="z-ai/glm-5.3-flash",
         direction=Direction.INPUT,
         open_weights=True,
     ),
-    "TIX-GLM5-OUT": Contract(
-        code="TIX-GLM5-OUT",
-        display_name="GLM 5.x output",
-        model="glm-5",
+    "TIX-K3-OUT": Contract(
+        code="TIX-K3-OUT",
+        display_name="Kimi K3 output",
+        model="moonshotai/kimi-k3",
         direction=Direction.OUTPUT,
         open_weights=True,
     ),
-    "TIX-MM27-OUT": Contract(
-        code="TIX-MM27-OUT",
-        display_name="MiniMax M2.7 output",
-        model="minimax-m2.7",
+    "TIX-DSV41-OUT": Contract(
+        code="TIX-DSV41-OUT",
+        display_name="DeepSeek V4.1 Flash output",
+        model="deepseek/deepseek-v4.1-flash",
+        direction=Direction.OUTPUT,
+        open_weights=True,
+    ),
+    "TIX-MM3-OUT": Contract(
+        code="TIX-MM3-OUT",
+        display_name="MiniMax M3 output",
+        model="minimax/minimax-m3",
         direction=Direction.OUTPUT,
         open_weights=True,
     ),
     # -- proprietary: included precisely to demonstrate the refusal ---------
+    #
+    # A real model with a real price, and still unindexable. The weights are
+    # not published, so whatever this costs is one company's list price. There
+    # is no second seller of the same good and therefore nothing to discover.
     "TIX-FRONTIER-OUT": Contract(
         code="TIX-FRONTIER-OUT",
-        display_name="Frontier proprietary output",
-        model="frontier",
+        display_name="GPT-6 Astra output",
+        model="openai/gpt-6-astra",
         direction=Direction.OUTPUT,
         open_weights=False,
     ),

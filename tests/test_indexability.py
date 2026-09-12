@@ -49,7 +49,7 @@ def test_indexability_is_decided_before_data_sufficiency() -> None:
     for the gate to quietly start passing once coverage improved.
     """
     quotes, rejections = normalize_all(
-        [_obs(f"seller{i}", "frontier", 20.0 + i) for i in range(9)],
+        [_obs(f"seller{i}", "openai/gpt-6-astra", 20.0 + i) for i in range(9)],
         "TIX-FRONTIER-OUT",
     )
     from tokidx.estimator import estimate
@@ -63,24 +63,24 @@ def test_indexability_is_decided_before_data_sufficiency() -> None:
 
 
 def test_an_open_weight_good_with_three_sellers_publishes() -> None:
-    f = run("TIX-K26-OUT", DAY)
+    f = run("TIX-GLM53-OUT", DAY)
     assert f.published
     assert len(f.contributing) >= DEFAULT_GATES.min_providers
     assert f.value is not None
 
 
 def test_the_published_value_sits_inside_the_observed_spread() -> None:
-    f = run("TIX-K26-OUT", DAY)
+    f = run("TIX-GLM53-OUT", DAY)
     prices = [p.price for p in f.contributing]
     assert min(prices) <= f.value <= max(prices)
 
 
 def test_input_and_output_are_separate_goods() -> None:
     """Blending them would require an assumed ratio nobody can observe."""
-    out = run("TIX-K26-OUT", DAY)
-    inp = run("TIX-K26-IN", DAY)
+    out = run("TIX-GLM53-OUT", DAY)
+    inp = run("TIX-GLM53-IN", DAY)
     assert out.value != inp.value
-    assert CONTRACTS["TIX-K26-OUT"].direction is not CONTRACTS["TIX-K26-IN"].direction
+    assert CONTRACTS["TIX-GLM53-OUT"].direction is not CONTRACTS["TIX-GLM53-IN"].direction
 
 
 def test_a_thin_panel_withholds_rather_than_printing() -> None:
@@ -94,10 +94,10 @@ def test_a_thin_panel_withholds_rather_than_printing() -> None:
 def test_catalogue_size_buys_no_influence() -> None:
     """A seller listing the same good six ways still gets one vote."""
     one = collapse_to_providers(
-        normalize_all([_obs("a", "kimi-k2.6", 4.0)], "TIX-K26-OUT")[0]
+        normalize_all([_obs("a", "z-ai/glm-5.3-flash", 4.0)], "TIX-GLM53-OUT")[0]
     )
     many = collapse_to_providers(
-        normalize_all([_obs("a", "kimi-k2.6", 4.0) for _ in range(6)], "TIX-K26-OUT")[0]
+        normalize_all([_obs("a", "z-ai/glm-5.3-flash", 4.0) for _ in range(6)], "TIX-GLM53-OUT")[0]
     )
     assert len(one) == len(many) == 1
     assert one[0].price == many[0].price
@@ -111,9 +111,9 @@ def test_batch_restates_onto_the_sellers_own_standard_price() -> None:
     batch at half.
     """
     quotes, _ = normalize_all(
-        [_obs("deepinfra", "kimi-k2.6", 3.50),
-         _obs("deepinfra", "kimi-k2.6", 1.75, serving=Serving.BATCH)],
-        "TIX-K26-OUT",
+        [_obs("deepinfra", "z-ai/glm-5.3-flash", 3.50),
+         _obs("deepinfra", "z-ai/glm-5.3-flash", 1.75, serving=Serving.BATCH)],
+        "TIX-GLM53-OUT",
     )
     assert len(quotes) == 2
     assert quotes[0].usd_per_mtok == pytest.approx(quotes[1].usd_per_mtok)
@@ -127,8 +127,8 @@ def test_a_cache_price_is_discarded_rather_than_multiplied_by_ten() -> None:
     at 10x does not.
     """
     quotes, rejections = normalize_all(
-        [_obs("x", "kimi-k2.6", 0.10, direction=Direction.INPUT, serving=Serving.CACHED)],
-        "TIX-K26-IN",
+        [_obs("x", "z-ai/glm-5.3-flash", 0.10, direction=Direction.INPUT, serving=Serving.CACHED)],
+        "TIX-GLM53-IN",
     )
     assert not quotes
     assert [r.reason for r in rejections] == ["over_adjusted"]
@@ -136,7 +136,7 @@ def test_a_cache_price_is_discarded_rather_than_multiplied_by_ten() -> None:
 
 def test_a_batch_price_survives_the_ceiling() -> None:
     quotes, rejections = normalize_all(
-        [_obs("x", "kimi-k2.6", 1.75, serving=Serving.BATCH)], "TIX-K26-OUT"
+        [_obs("x", "z-ai/glm-5.3-flash", 1.75, serving=Serving.BATCH)], "TIX-GLM53-OUT"
     )
     assert quotes and not rejections
 
