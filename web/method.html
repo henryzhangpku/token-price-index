@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
-<link rel="stylesheet" href="style.css?v=9f11254c">
+<link rel="stylesheet" href="style.css?v=8a0a42ab">
 </head>
 <body>
 
@@ -30,12 +30,26 @@
 <div class="wrap">
 
   <section class="hero">
-    <h1>Method</h1>
+    <p class="kicker">Token price index &middot; reference implementation</p>
+    <h1>Anyone can average prices. A benchmark decides which goods have one.</h1>
     <p>
-      The full document is <a href="https://github.com/henryzhangpku/token-price-index/blob/main/METHODOLOGY.md">METHODOLOGY.md</a>,
-      including the limitations. This page is the argument it makes.
+      A daily index over LLM inference pricing, built to the standard a cash-settled
+      contract would demand: reproducible years later, defensible to a counterparty
+      who lost money on it, and honest about the goods it cannot measure at all.
     </p>
   </section>
+
+  <div class="panel">
+    <header>
+      <h2>Daily fixing</h2>
+      <span class="note" id="board-meta">loading&hellip;</span>
+    </header>
+    <div id="board-table"><div class="loading">reading the tape&hellip;</div></div>
+  </div>
+  <p class="chart-note" style="margin:14px 0 0">
+    A withheld row is one the estimator could have produced and the gates refused.
+    <a href="index.html">Open the dashboard</a> to see every seller behind a number.
+  </p>
 
   <section class="band">
     <p class="kicker">1 &middot; the question</p>
