@@ -16,6 +16,7 @@ from .spec import (
     MAD_TO_SIGMA,
     METHODOLOGY_VERSION,
     OUTLIER_SIGMAS,
+    PUBLICATION_DECIMALS,
     TIER_WEIGHTS,
     Gates,
 )
@@ -164,8 +165,13 @@ def estimate(
     contributing = [p for p in points if not p.screened_out]
     disp = dispersion(contributing)
     total_weight = sum(p.weight for p in contributing)
+    # Summed in a fixed order and rounded once. Floating-point addition is not
+    # associative, so an unrounded mean can differ in its last bit between two
+    # runs over the same market -- see PUBLICATION_DECIMALS.
+    ordered = sorted(contributing, key=lambda p: (p.price, p.provider))
     value = (
-        sum(p.price * p.weight for p in contributing) / total_weight
+        round(sum(p.price * p.weight for p in ordered) / total_weight,
+              PUBLICATION_DECIMALS)
         if total_weight > 0
         else None
     )
