@@ -73,11 +73,23 @@ def market(price_list: list[float], per_seller: int = 1) -> list[Quote]:
 @given(st.lists(prices, min_size=3, max_size=9))
 @PROPERTY_SETTINGS
 def test_the_value_never_escapes_the_contributing_prices(price_list):
-    """A weighted average of numbers cannot sit outside them."""
+    """A weighted average of numbers cannot sit outside them.
+
+    The tolerance is one published unit rather than a floating-point epsilon,
+    and that is the whole subtlety. The mean is inside the range by
+    construction, but the *published* number is that mean rounded to four
+    places, and rounding can carry it half a unit past either end -- most
+    visibly when every seller quotes the same price and it is not itself
+    representable at the published precision.
+
+    Written with an epsilon first, this passed for two runs and failed on the
+    third. A property test that passes on a retry has not passed.
+    """
     fixing = estimate("TIX-K26-OUT", DAY, market(price_list), [], DEFAULT_GATES)
     assume(fixing.published)
     contributing = [p.price for p in fixing.contributing]
-    assert min(contributing) - 1e-9 <= fixing.value <= max(contributing) + 1e-9
+    unit = 10.0 ** -PUBLICATION_DECIMALS
+    assert min(contributing) - unit <= fixing.value <= max(contributing) + unit
 
 
 @given(st.lists(prices, min_size=3, max_size=7), catalogue)
