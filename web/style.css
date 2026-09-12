@@ -117,9 +117,18 @@ code, .mono { font-family: var(--mono); }
 
 /* ---------- hero ---------- */
 
-.hero { padding: 54px 0 34px; }
-.hero h1 { font-size: clamp(30px, 4.6vw, 46px); font-weight: 700; line-height: 1.08; margin: 0; max-width: 20ch; }
-.hero p { font-size: 19px; color: var(--ink-2); margin: 18px 0 0; max-width: 62ch; }
+/* Matched to the sibling benchmark's scale so the two sites read as one
+   family: same padding, same clamp, same measure. */
+.hero { padding: 66px 0 40px; }
+.hero h1 {
+  font-weight: 700; font-size: clamp(36px, 6vw, 62px); line-height: 1.03;
+  margin: 16px 0 0; max-width: 17ch;
+}
+.hero p {
+  font-size: clamp(19px, 2.2vw, 23px); color: var(--ink-2);
+  margin: 22px 0 0; max-width: 56ch;
+}
+.hero .kicker { margin: 0; }
 
 /* ---------- panels ---------- */
 
