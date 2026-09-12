@@ -39,6 +39,14 @@ prices = st.integers(min_value=5, max_value=4000).map(lambda cents: cents / 100.
 #: single SKU, so the generator has to be able to produce both.
 catalogue = st.integers(min_value=1, max_value=6)
 
+#: The value properties are about arithmetic, not about publication. Gating
+#: them filters out most generated markets -- sharply so since dispersion
+#: became a tail quantile -- and leaves the property tested on whatever
+#: remnant happened to clear the gates, which is a biased sample and a health
+#: check failure besides.
+PERMISSIVE = Gates(min_providers=1, min_observations=1, max_dispersion=1e9,
+                   max_provider_weight_share=1.0, require_indexable_good=False)
+
 PROPERTY_SETTINGS = settings(
     max_examples=300, deadline=None, suppress_health_check=[HealthCheck.too_slow]
 )
@@ -85,8 +93,8 @@ def test_the_value_never_escapes_the_contributing_prices(price_list):
     Written with an epsilon first, this passed for two runs and failed on the
     third. A property test that passes on a retry has not passed.
     """
-    fixing = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], DEFAULT_GATES)
-    assume(fixing.published)
+    fixing = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], PERMISSIVE)
+    assume(fixing.value is not None)
     contributing = [p.price for p in fixing.contributing]
     unit = 10.0 ** -PUBLICATION_DECIMALS
     assert min(contributing) - unit <= fixing.value <= max(contributing) + unit
@@ -96,8 +104,8 @@ def test_the_value_never_escapes_the_contributing_prices(price_list):
 @PROPERTY_SETTINGS
 def test_one_seller_one_vote_whatever_the_catalogue_size(price_list, per_seller):
     """Listing the same weights six times must buy no extra influence."""
-    one = estimate("TIX-GLM53-OUT", DAY, market(price_list, 1), [], DEFAULT_GATES)
-    many = estimate("TIX-GLM53-OUT", DAY, market(price_list, per_seller), [], DEFAULT_GATES)
+    one = estimate("TIX-GLM53-OUT", DAY, market(price_list, 1), [], PERMISSIVE)
+    many = estimate("TIX-GLM53-OUT", DAY, market(price_list, per_seller), [], PERMISSIVE)
     assume(one.value is not None and many.value is not None)
     assert one.value == many.value
 
@@ -106,9 +114,9 @@ def test_one_seller_one_vote_whatever_the_catalogue_size(price_list, per_seller)
 @PROPERTY_SETTINGS
 def test_the_order_observations_arrive_in_changes_nothing(price_list):
     """A fixing that depends on file order is not reproducible."""
-    forward = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], DEFAULT_GATES)
+    forward = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], PERMISSIVE)
     backward = estimate("TIX-GLM53-OUT", DAY, market(list(reversed(price_list))), [],
-                        DEFAULT_GATES)
+                        PERMISSIVE)
     assume(forward.value is not None and backward.value is not None)
     assert forward.value == backward.value
 
@@ -123,9 +131,9 @@ def test_the_value_scales_with_the_market(price_list, factor):
     precision, so scaling and rounding do not commute. The honest property is
     that they agree to within one published unit on each side.
     """
-    base = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], DEFAULT_GATES)
+    base = estimate("TIX-GLM53-OUT", DAY, market(price_list), [], PERMISSIVE)
     scaled = estimate("TIX-GLM53-OUT", DAY, market([p * factor for p in price_list]), [],
-                      DEFAULT_GATES)
+                      PERMISSIVE)
     assume(base.value is not None and scaled.value is not None)
     unit = 10.0 ** -PUBLICATION_DECIMALS
     assert abs(scaled.value - base.value * factor) <= unit * (1.0 + factor)
