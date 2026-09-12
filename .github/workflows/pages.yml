@@ -1,9 +1,31 @@
 name: demo site
 
+# Publishes the static demo site to GitHub Pages.
+#
+# The site is not committed. It is generated from the archive at deploy time by
+# `tokidx export-web`, which reads the observations and recomputes the newest
+# fixing through the same path the tests use. That means the page cannot drift
+# from the published record: there is no second copy to fall out of date.
+#
+# Triggering is deliberately belt-and-braces, because the obvious wiring does
+# not work. The daily fixing pushes its commit with the default GITHUB_TOKEN,
+# and GitHub does not let a push made with that token start another workflow --
+# a loop guard. So a `push` trigger alone leaves the site silently a day stale
+# after every fixing, which is the worst failure mode available to a page whose
+# whole claim is that it follows the tape.
+#
+# `workflow_run` closes that hole: it fires when the fixing workflow finishes,
+# regardless of who pushed. The `push` trigger still covers human commits to
+# web/ or src/.
+
 on:
   push:
     branches: [main]
-    paths: [web/**, src/**, .github/workflows/pages.yml]
+    paths:
+      - "web/**"
+      - "data/**"
+      - "src/**"
+      - ".github/workflows/pages.yml"
   workflow_run:
     workflows: [ci, "daily fixing"]
     types: [completed]
@@ -15,25 +37,59 @@ permissions:
   id-token: write
 
 concurrency:
+  # Never let two deploys race; always finish the one in flight.
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    # A failed fixing publishes nothing, so there is nothing new to deploy.
+    # The condition has to admit push and dispatch, where workflow_run is null.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # workflow_run checks out the default branch by SHA of the *trigger*
+          # unless told otherwise; be explicit so the export always reads the
+          # observations as they stand on main right now.
+          ref: main
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Install project
+        run: uv sync --frozen
+
+      - name: Export the archive as JSON
+        run: uv run tokidx export-web --out web/data
+
+      - name: Fail if the bundle is empty
+        # A deployed site that silently shows nothing is worse than a failed
+        # deploy: it looks live and says the market has no prices.
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys
+          bundle = json.loads(pathlib.Path("web/data/fixings.json").read_text())
+          if not bundle.get("indices"):
+              sys.exit("fixings.json carries no indices; refusing to deploy")
+          print(f"{len(bundle['indices'])} indices for {bundle['index_date']}")
+          PY
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: web
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-      - name: rebuild the bundle from the pipeline
-        run: uv run tokidx export-web --out web/data
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: web
-      - id: deploy
+      - id: deployment
         uses: actions/deploy-pages@v4

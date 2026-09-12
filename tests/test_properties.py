@@ -163,7 +163,7 @@ def test_an_absurdly_high_quote_is_always_screened(honest, consensus, multiple):
     zero and a sigma test is undefined. An implementation that returns without
     screening at that point publishes whatever the adversary asked for.
     """
-    quotes = market([consensus] * honest) + [quote("adversary", consensus * multiple)]
+    quotes = [*market([consensus] * honest), quote("adversary", consensus * multiple)]
     points = collapse_to_providers(quotes)
     screen(points)
     adversary = next(p for p in points if p.provider == "adversary")
@@ -180,7 +180,7 @@ def test_a_near_zero_quote_is_screened_from_a_unanimous_market(honest, consensus
     symmetric in ratio, which is the right shape for a price.
     """
     assume(consensus > 0.5)
-    quotes = market([consensus] * honest) + [quote("adversary", consensus / 100.0)]
+    quotes = [*market([consensus] * honest), quote("adversary", consensus / 100.0)]
     points = collapse_to_providers(quotes)
     screen(points)
     adversary = next(p for p in points if p.provider == "adversary")
