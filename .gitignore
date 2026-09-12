@@ -4,3 +4,8 @@ __pycache__/
 
 # Google Fonts TTFs cached by scripts/make_og.py; refetched on demand.
 scripts/.fonts/
+
+# The site bundle is generated from the pipeline at deploy time, so a committed
+# copy is only ever a second version of the truth waiting to fall out of date --
+# which is exactly what docs/FINDINGS.md #5 records happening.
+web/data/
