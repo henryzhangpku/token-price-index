@@ -10,43 +10,56 @@ can carry an index at all, and which cannot.**
 ## Scope, stated up front
 
 It sits beside [gpu-price-index](https://github.com/henryzhangpku/gpu-price-index),
-which asks the same question of compute rental. This one is younger and smaller,
-and the difference is worth naming rather than discovering.
+which asks the same question of compute rental.
 
-**What is here.** A bitemporal store, so what the tape said for a date *as known
-at a moment* stays answerable after any correction; corrections append and must
-carry a reason. Robust estimation with a ratio fallback where the usual one is
-undefined. Publication gates that withhold rather than guess. Quality checks for
-staleness, seller dropout, and level shifts at the index and the seller. A
-property suite over generated markets rather than chosen ones.
+**What is here.** Live daily collection from a public source that publishes, per
+model, what each independent seller charges to serve the identical weights --
+97 observations across 35 sellers on the first run. Collection and estimation
+are separate processes: `tokidx collect` reaches the network once and writes a
+dated snapshot, and everything downstream reads that file and reaches nowhere,
+so a published value can always be shown to follow from its own inputs. A
+bitemporal store, where corrections append and must carry a reason. Robust
+estimation with a ratio fallback where the usual screen is undefined.
+Publication gates that withhold rather than guess. Quality checks for
+staleness, seller dropout and level shifts. A property suite over generated
+markets rather than chosen ones.
 
-**What is not.** No source adapters: prices come from one dated, sourced table,
-read by hand on a single day. Which means no series, no chart, and — more
-importantly — **nothing calibrated**. The compute benchmark sets its
+**What is not, and it is the important one.** Every observation arrives through
+**one venue**. Twenty-seven sellers of the same weights is twenty-seven sellers
+and *one source*. If that source changed its schema, mis-parsed a field, or
+went away, the seller count would not notice -- it would keep reporting
+twenty-seven right up until it reported none. The compute benchmark found
+exactly this shape in its own inputs, where twelve providers turned out to be
+five venues with one aggregator behind eight of them, and both count gates
+still passed when that feed was removed.
+
+So collected observations sit at the aggregated tier rather than the list tier,
+and the venue count is printed next to the seller count. A single-venue index
+is not disqualified by that. It is disqualified by not saying so.
+
+**And nothing is calibrated yet.** The compute benchmark sets its
 contributor-shift threshold at 25% from 403 observed daily moves with p99 at
-21.2%. The equivalent number here is judgement, and the checks that would use it
-report `not_evaluable` rather than passing quietly, because a control that
-reports success on no evidence is worse than no control.
-
-That is the honest gap, and it is a gap rather than a decision. A benchmark that
-settles anything needs real collection, and this one does not have it yet.
-
-The part that does not need collection is the finding below: whether a good can
-carry an index at all is a property of the good, and it is answerable before the
-first price is read.
+21.2%. The equivalent number here is judgement, and the checks that would use
+it report `not_evaluable` rather than passing quietly, because a control that
+reports success on no evidence is worse than no control. The series is one day
+old.
 
 ```
 daily fixing
-
- index               value   prov   obs    disp   status      why
- ─────────────────────────────────────────────────────────────────────────────
- TIX-K26-OUT         4.000      3     4   0.185   published
- TIX-K26-IN          0.967      3     4   0.312   published
- TIX-GLM5-OUT           --      2     2      --   withheld    min providers
- TIX-MM27-OUT           --      2     2      --   withheld    min providers
- TIX-FRONTIER-OUT       --      2     4      --   withheld    indexable good
-
-  USD per million tokens. 3 of 5 indices decline to print,
++-----------------------------------------------------------------------------+
+|index            | value | prov | obs |  disp | status    | why              |
+|-----------------+-------+------+-----+-------+-----------+------------------|
+|TIX-GLM53-OUT    | 0.331 |   27 |  27 | 0.000 | published |                  |
+|TIX-GLM53-IN     | 0.099 |   27 |  27 | 0.000 | published |                  |
+|TIX-K3-OUT       | 9.403 |   16 |  19 | 0.111 | published |                  |
+|TIX-DSV41-OUT    | 0.701 |   12 |  12 | 0.171 | published |                  |
+|TIX-MM3-OUT      | 0.923 |   12 |  12 | 0.000 | published |                  |
+|TIX-FRONTIER-OUT |    -- |    0 |   0 |    -- | withheld  | indexable good,  |
+|                 |       |      |     |       |           | min providers,   |
+|                 |       |      |     |       |           | min observations,|
+|                 |       |      |     |       |           | dispersion       |
++-----------------------------------------------------------------------------+
+  USD per million tokens. 1 of 6 indices decline to print,
   and 1 of those cannot print by construction rather than for want of data.
 ```
 
