@@ -41,7 +41,24 @@ market.
 
 The `indexable_good` gate encodes this, and it is evaluated first.
 
-## 3. The waterfall
+## 3. Coverage
+
+| index | benchmark good | status |
+|---|---|---|
+| `TIX-GLM53-OUT` | GLM 5.3 Flash, output | published — 27 sellers |
+| `TIX-GLM53-IN` | GLM 5.3 Flash, input | published — 27 sellers |
+| `TIX-K3-OUT` | Kimi K3, output | published — 16 sellers after screening |
+| `TIX-DSV41-OUT` | DeepSeek V4.1 Flash, output | published — 12 sellers |
+| `TIX-MM3-OUT` | MiniMax M3, output | **withheld — dispersion**, 0.920 against a 0.60 ceiling |
+| `TIX-FRONTIER-OUT` | GPT-6 Astra, output | **withheld — not an indexable good** |
+
+The last row is refused for a reason no amount of data would change. The
+weights are not published, so whatever it costs is one company's list price;
+the two sellers on the tape resell that company's model rather than competing
+to serve the same weights. Coverage here is a statement about which goods exist
+as goods, not about how much was collected.
+
+## 4. The waterfall
 
 | tier | weight | what it proves |
 |---|---|---|
@@ -58,7 +75,7 @@ genuinely populated, and the evidence base is better than it is for GPU rental.
 The offsetting weakness is in section 6: enterprise pricing is negotiated and
 invisible, so what is well-observed is the retail tail.
 
-## 4. Restatement
+## 5. Restatement
 
 Non-standard serving is restated onto the standard contract:
 
@@ -92,7 +109,7 @@ judgement.
 `tokidx calibrate` prints the check: where one seller publishes the same good
 two ways, the observed ratio is compared against the asserted factor.
 
-## 5. Estimation and gates
+## 6. Estimation and gates
 
 Each seller collapses to one median, so catalogue size buys no influence.
 Providers more than **3.0 robust sigma** from the provider median are screened,
@@ -120,7 +137,49 @@ Undefined dispersion is not a pass. Below three providers it is not computable,
 and a fixing whose disagreement cannot be measured is refused rather than
 assumed to be tight.
 
-## 6. What this cannot do
+## 7. Data quality
+
+Checks that catch failures arriving as well-formed data: a source returning last
+month's prices forever, quietly dropping its largest seller, or one seller
+repricing by a factor of four overnight. All of them need history.
+
+| check | fires when |
+|---|---|
+| staleness | collected prices are more than 7 days older than the index date |
+| seller dropout | a seller that contributed to the previous fixing is absent |
+| index level shift | the published value moves more than 20% between dates |
+| seller level shift | one seller moves more than 25% between dates |
+| price concentration | a majority of sellers quote one identical price |
+
+**Where there is no history, a check reports `not_evaluable` rather than
+passing.** A control that reports success because it had nothing to compare
+against is worse than no control, because it is indistinguishable from one that
+looked. The series began on 12 September 2026, so most of the above currently
+report exactly that.
+
+**And none of these thresholds are calibrated.** The compute benchmark sets its
+seller-shift threshold at 25% from 403 observed daily moves with p99 at 21.2%.
+The equivalent number here is judgement with a value attached, and is marked as
+such in `quality.py`. It will be re-derived once the series is long enough to
+support one.
+
+## 8. Revisions
+
+Storage is bitemporal and append-only. Two clocks are tracked separately: when a
+price was true in the market, and when this system first knew it.
+
+A correction never edits a published value. It writes a new revision, stamps the
+previous one as superseded, and **must carry a reason** — a restatement nobody
+explained is indistinguishable from a bug, and makes the history unreadable by
+the only people who would ever need it.
+
+This is what makes `as_of(index_date, knowledge_time)` answerable: *what did we
+say for the 12th, as known on the morning of the 13th* is a different question
+from *what do we believe the 12th was*, and only the first one helps a
+settlement agent resolving a dispute months later. A store that overwrites in
+place can answer the second and never the first.
+
+## 9. What this cannot do
 
 **1. No transaction data.** Every input is a published rate card. Nobody here
 observes what anyone paid. It is the largest gap between this and something a
@@ -158,8 +217,25 @@ across a wide band because sellers differ on throughput, context and latency —
 none of which this contract pins down. That reasoning is plausible and
 untested. It is recorded as judgement rather than dressed up as calibration.
 
-## 7. Provenance
+## 10. Provenance
 
 Every observation carries a source URL and an observation date, so any
 published value can be checked by hand against the seller's own page. Prices
 were read on 8 September 2026.
+
+## 11. Changing this document
+
+Every number in `spec.py` is a methodology decision rather than an
+implementation detail, and a change to one is a change to what the index means.
+
+A change that alters what a published value would have been is a **methodology
+version bump**, recorded in the fixing and carried in the bundle, so that a
+reader comparing two dates can tell whether the market moved or the rules did.
+Historical values are not recomputed under new rules — they stay as published,
+which is the point of the store.
+
+Two changes have been made since the first version, and both are documented
+where they live rather than only here: the cumulative adjustment ceiling (an
+unreachable bound, caught by a test) and the dispersion measure (a collapse on
+real data, caught by reading the board). Both changed what the index would
+print, and both say so.
