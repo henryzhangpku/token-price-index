@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Token price index">
+  <!-- Two quotes at an identical height plus one stray: the modal collapse this index found. -->
+  <style>
+    .ground { fill: #FFFFFF; stroke: #0B6E7A; }
+    .bar    { fill: #0B6E7A; }
+    @media (prefers-color-scheme: dark) {
+      .ground { fill: #0A0E0F; stroke: #3FBECB; }
+      .bar    { fill: #3FBECB; }
+    }
+  </style>
+  <rect class="ground" x="1.25" y="1.25" width="29.5" height="29.5" rx="6" stroke-width="2.5"/>
+  <g class="bar">
+    <rect x="6"    y="12" width="5" height="14" rx="2.5"/>
+    <rect x="13.5" y="12" width="5" height="14" rx="2.5"/>
+    <rect x="21"   y="7"  width="5" height="19" rx="2.5"/>
+  </g>
+</svg>

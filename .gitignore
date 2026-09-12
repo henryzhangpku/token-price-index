@@ -1,3 +1,6 @@
 .venv/
 __pycache__/
 *.pyc
+
+# Google Fonts TTFs cached by scripts/make_og.py; refetched on demand.
+scripts/.fonts/
