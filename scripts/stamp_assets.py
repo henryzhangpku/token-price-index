@@ -19,13 +19,27 @@ import re
 import sys
 from pathlib import Path
 
+CRLF, CR, LF = chr(13) + chr(10), chr(13), chr(10)
+
 WEB = Path(__file__).resolve().parents[1] / "web"
 ASSETS = ("app.js", "style.css")
 PAGES = ("index.html", "method.html")
 
 
 def digest(name: str) -> str:
-    return hashlib.sha256((WEB / name).read_bytes()).hexdigest()[:8]
+    """Hash the file's content, not its line endings.
+
+    Git checks out CRLF on Windows and LF on Linux, so hashing raw bytes makes
+    the stamp machine-dependent: it matches locally, fails in CI, and the file
+    is identical in both places. Normalise first. This guard caught it on its
+    own first run, which is the only reason it is written down here.
+    """
+    # newline="" keeps the bytes as written; Path.read_text only grew that
+    # argument in 3.13 and this package supports 3.11.
+    with (WEB / name).open(encoding="utf-8", newline="") as handle:
+        raw = handle.read()
+    text = raw.replace(CRLF, LF).replace(CR, LF)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
 
 
 def stamped(source: str, name: str, value: str) -> str:
