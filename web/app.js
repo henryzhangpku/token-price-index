@@ -135,53 +135,64 @@ function chartPanel(idx) {
       <div class="body"><div class="loading">no seller survived restatement</div></div></div>`;
   }
 
-  // A strip plot, not a line. Price on the axis and one dot per seller,
-  // stacked where sellers quote the same number -- which is the shape this
-  // market actually has. Twenty-seven sellers plotted along a seller axis
-  // collide into an unreadable row; plotted against price they show the mode.
-  const W = 720, H = 210, L = 20, R = 20, T = 26, B = 46;
+  // A strip plot: price on the axis, one dot per seller, stacked where sellers
+  // quote the same number -- which is the shape this market actually has.
+  //
+  // The stack height has to be solved for before anything is drawn. Fifteen
+  // sellers at one price is a column fifteen dots tall, and a fixed step size
+  // sends it straight out of the top of the panel.
+  const W = 720, L = 26, R = 26, TOP = 26, AXIS_GAP = 34, LABEL_ROW = 26;
+
   const prices = sellers.map((p) => p.price);
   let lo = Math.min(...prices), hi = Math.max(...prices);
   if (hi - lo < 1e-9) { const c = hi || 1; lo = c * 0.85; hi = c * 1.15; }
-  const pad = (hi - lo) * 0.10;
+  const pad = (hi - lo) * 0.08;
   lo -= pad; hi += pad;
   const x = (v) => L + (W - L - R) * (v - lo) / (hi - lo);
 
-  const baseline = H - B;
-  const step = 13, radius = 5;
+  // How tall does the tallest column get? Count collisions on the x axis.
+  const xs = sellers.map((p) => x(p.price));
+  const tallest = xs.reduce((most, cx, i) => {
+    const n = xs.slice(0, i + 1).filter((q) => Math.abs(q - cx) < 9).length;
+    return Math.max(most, n);
+  }, 1);
 
-  // Stack collisions upward from the baseline.
+  const STACK = 168;                                   // room the column may use
+  const step = Math.max(6, Math.min(13, STACK / tallest));
+  const radius = Math.max(3, Math.min(5, step * 0.42));
+  const H = TOP + STACK + AXIS_GAP + LABEL_ROW;
+  const baseline = TOP + STACK;
+
   const placed = [];
   const dots = sellers.map((p) => {
     const cx = x(p.price);
     const level = placed.filter((q) => Math.abs(q - cx) < radius * 1.9).length;
     placed.push(cx);
-    const cy = baseline - 8 - level * step;
-    return `<circle class="dot" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${radius}">
+    return `<circle class="dot" cx="${cx.toFixed(1)}" cy="${(baseline - radius - 2 - level * step).toFixed(1)}" r="${radius.toFixed(1)}">
         <title>${escapeHtml(p.provider)} — $${fmt(p.price)}</title></circle>`;
   }).join("");
 
-  const ticks = [lo + (hi - lo) * 0.02, (lo + hi) / 2, hi - (hi - lo) * 0.02].map((t) =>
-    `<text class="tick" x="${x(t).toFixed(1)}" y="${H - B + 20}" text-anchor="middle">$${fmt(t, 3)}</text>`
+  const ticks = [lo + (hi - lo) * 0.02, (lo + hi) / 2, hi - (hi - lo) * 0.02].map((t, i) =>
+    `<text class="tick" x="${x(t).toFixed(1)}" y="${baseline + 20}"
+       text-anchor="${i === 0 ? "start" : i === 2 ? "end" : "middle"}">$${fmt(t, 3)}</text>`
   ).join("");
 
+  // The fixing label sits below the tick row, never beside the column.
+  const fx = idx.published ? x(idx.value) : null;
   const fixing = idx.published
-    ? `<line class="fixing" x1="${x(idx.value).toFixed(1)}" x2="${x(idx.value).toFixed(1)}"
-             y1="${T - 8}" y2="${baseline}"/>
-       <text class="fixing-label" x="${x(idx.value).toFixed(1)}" y="${T - 12}" text-anchor="middle">fixing $${fmt(idx.value)}</text>`
+    ? `<line class="fixing" x1="${fx.toFixed(1)}" x2="${fx.toFixed(1)}" y1="${TOP - 6}" y2="${baseline}"/>
+       <text class="fixing-label" x="${Math.min(Math.max(fx, 52), W - 52).toFixed(1)}"
+             y="${baseline + AXIS_GAP + 14}" text-anchor="middle">fixing $${fmt(idx.value)}</text>`
     : "";
 
-  const mode = (() => {
-    const counts = {};
-    for (const p of sellers) counts[p.price] = (counts[p.price] || 0) + 1;
-    const [price, n] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-    return { price: Number(price), n: Number(n) };
-  })();
+  const counts = {};
+  for (const p of sellers) counts[p.price] = (counts[p.price] || 0) + 1;
+  const [modePrice, modeN] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
 
-  const note = mode.n > 1
-    ? `<strong>${mode.n} of ${sellers.length}</strong> sellers quote exactly $${fmt(mode.price)}. `
-      + `A seller count says this market is competitive; the prices say most of it is anchored, `
-      + `and the spread lives in the tails.`
+  const note = Number(modeN) > 1
+    ? `<strong>${modeN} of ${sellers.length}</strong> sellers quote exactly $${fmt(Number(modePrice))}. `
+      + `A seller count says this market is competitive; the prices say most of it is anchored `
+      + `on one number, and the spread lives in the tails.`
     : `Every seller quotes a different price.`;
 
   return `<div class="panel">
