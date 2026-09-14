@@ -13,6 +13,11 @@
   --warn: #8C5E0B;
   --warn-soft: #F8EEDA;
   --warn-line: #E1CE9E;
+  /* Referenced by the withheld legend swatch, the withheld cells in the series
+     status strip, and the refused row of the cross-section -- and never
+     defined until now, so all three painted transparent. One meaning, one
+     colour: the same amber as the WITHHELD chip, in either theme. */
+  --withheld: var(--warn);
   --shadow: 0 1px 2px rgba(18, 24, 26, .05), 0 8px 24px rgba(18, 24, 26, .05);
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --ui: Chivo, "Helvetica Neue", Arial, sans-serif;
@@ -157,6 +162,10 @@ code, .mono { font-family: var(--mono); }
    was ever written for that class, so the wrapper did nothing and the widest
    of them widened the document on its own. */
 #board-table, .table-scroll, .tw { overflow-x: auto; }
+/* Inside a scroll container the index column must not wrap. On a phone it was
+   breaking "TIX-GLM53-OUT" across two lines and the model name across four,
+   because the table could shrink the one column with no nowrap on it. */
+#board-table td:first-child { white-space: nowrap; }
 
 table { width: 100%; border-collapse: collapse; }
 th {
