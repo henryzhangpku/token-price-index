@@ -146,7 +146,7 @@ function chartPanel(idx) {
   // The stack height has to be solved for before anything is drawn. Fifteen
   // sellers at one price is a column fifteen dots tall, and a fixed step size
   // sends it straight out of the top of the panel.
-  const W = 720, L = 26, R = 26, TOP = 26, AXIS_GAP = 34, LABEL_ROW = 26;
+  const W = chartWidth(), L = 26, R = 26, TOP = 26, AXIS_GAP = 34, LABEL_ROW = 26;
 
   const prices = sellers.map((p) => p.price);
   let lo = Math.min(...prices), hi = Math.max(...prices);
@@ -245,13 +245,18 @@ function seriesPanel(idx, data) {
     </div>`;
   }
 
-  const W = 720, H = 240;
+  const W = chartWidth(), H = 240;
   const pad = { t: 18, r: 24, b: 64, l: 58 };
   const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
   const stripY = H - 40, stripH = 9;
 
+  // The axis never zooms tighter than ±4% of the level. Autoscaling to the
+  // data alone turns a 0.5% drift into a full-height cliff, which says the
+  // opposite of what the number says. A small move has to look small.
   let lo = Math.min(...values), hi = Math.max(...values);
-  if (hi === lo) { const c = hi || 1; lo = c * 0.95; hi = c * 1.05; }
+  const mid = (lo + hi) / 2 || 1;
+  const floor = Math.abs(mid) * 0.04;
+  if (hi - lo < floor * 2) { lo = mid - floor; hi = mid + floor; }
   const span = hi - lo;
   lo -= span * 0.18; hi += span * 0.18;
 
@@ -259,11 +264,15 @@ function seriesPanel(idx, data) {
   const x = (i) => pad.l + (n === 1 ? iw / 2 : (i * iw) / (n - 1));
   const y = (v) => pad.t + ih - ((v - lo) / (hi - lo)) * ih;
 
+  // Tick precision follows the tick step, or two adjacent ticks round to the
+  // same label -- "$0.330" printed twice on a 0.0004 step.
+  const tickStep = (hi - lo) / 4;
+  const dp = Math.max(2, Math.min(4, Math.ceil(-Math.log10(tickStep)) + 1));
   let grid = "";
   for (let i = 0; i <= 4; i++) {
     const v = lo + ((hi - lo) * i) / 4, yy = y(v);
     grid += `<line class="grid" x1="${pad.l}" y1="${yy.toFixed(1)}" x2="${W - pad.r}" y2="${yy.toFixed(1)}"/>`
-          + `<text class="tick" x="${pad.l - 9}" y="${(yy + 3.5).toFixed(1)}" text-anchor="end">$${fmt(v, 3)}</text>`;
+          + `<text class="tick" x="${pad.l - 9}" y="${(yy + 3.5).toFixed(1)}" text-anchor="end">$${fmt(v, dp)}</text>`;
   }
 
   // Consecutive published days form one segment; a withheld day ends it.
@@ -410,6 +419,14 @@ function contractPanel(idx, data) {
   </div>`;
 }
 
+/* The SVGs scale to their panel through viewBox, so a fixed 720 drawn into a
+ * 310px phone column shrank every tick label to about five pixels. Draw at
+ * the width the panel actually has, and redraw when that width changes. */
+function chartWidth() {
+  const host = $("#detail");
+  return host && host.clientWidth ? Math.max(320, Math.min(720, host.clientWidth - 44)) : 720;
+}
+
 function renderDetail() {
   const host = $("#detail");
   if (!host || !DATA) return;
@@ -417,6 +434,12 @@ function renderDetail() {
   host.innerHTML = seriesPanel(idx, DATA) + chartPanel(idx) + gatesPanel(idx)
     + contributionsPanel(idx) + contractPanel(idx, DATA);
 }
+
+let redrawTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(redrawTimer);
+  redrawTimer = setTimeout(renderDetail, 120);
+});
 
 function select(code) {
   CURRENT = code;
