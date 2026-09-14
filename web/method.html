@@ -223,8 +223,8 @@
     </div>
     <div class="cards">
       <div class="card">
-        <span class="label">One collection date</span>
-        <p>Prices were read once. There is no time series, so no chart is drawn &mdash; re-running a fixed table daily would manufacture a flat line that looks like data and is not.</p>
+        <span class="label">A short tape</span>
+        <p>The series is days long, not months. Each date is priced from its own snapshot and the line breaks on a withheld day rather than bridging it &mdash; but no time-dependent check has enough history to judge against yet, so staleness, dropout and level-shift all report <code>not_evaluable</code> rather than passing on nothing.</p>
       </div>
       <div class="card">
         <span class="label">No transaction data</span>
@@ -239,12 +239,12 @@
         <p>Two sellers listing the same model may serve different quantisations, context limits or throughput. The contract pins the weights; it does not pin what you actually get.</p>
       </div>
       <div class="card">
-        <span class="label">No source adapters</span>
-        <p>One dated, sourced table read by hand. The collection architecture is real; the collection is not yet.</p>
+        <span class="label">One venue</span>
+        <p>Collection is live, but every observation arrives through OpenRouter. Thirty-seven sellers behind one source is thirty-seven sellers and one point of failure: if it changed schema or went away, the seller count would keep reporting thirty-seven right up until it reported none. That is why collected prices sit at the aggregated tier rather than the list tier.</p>
       </div>
       <div class="card">
         <span class="label">Thresholds are judgement</span>
-        <p>Unlike the compute benchmark's contributor-shift check &mdash; measured from 403 observations &mdash; nothing here is calibrated, because one collection date supports no calibration. The checks exist and report <code>not_evaluable</code> rather than passing quietly.</p>
+        <p>Unlike the compute benchmark's contributor-shift check &mdash; measured from 403 observations &mdash; nothing here is calibrated, because a tape a few days long supports no calibration. The checks exist and report <code>not_evaluable</code> rather than passing quietly.</p>
       </div>
     </div>
   </section>

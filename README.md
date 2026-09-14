@@ -41,8 +41,8 @@ is not disqualified by that. It is disqualified by not saying so.
 contributor-shift threshold at 25% from 403 observed daily moves with p99 at
 21.2%. The equivalent number here is judgement, and the checks that would use
 it report `not_evaluable` rather than passing quietly, because a control that
-reports success on no evidence is worse than no control. The series is one day
-old.
+reports success on no evidence is worse than no control. The tape is days old,
+not months; nothing here has seen enough daily moves to fit a threshold to.
 
 ```
 daily fixing
@@ -350,11 +350,12 @@ and this index treats a token as a token. That is the hedonic problem official
 statisticians handle for computer prices, and it is not handled here. A falling
 series may be describing better models rather than cheaper ones.
 
-**One collection date, so no series yet.** `tokidx collect` is live and the
-daily workflow appends a dated snapshot, but at the time of writing the tape
-holds a single fixing. Every time-dependent control — staleness, seller
-dropout, level shifts — reports `not_evaluable` rather than passing on no
-evidence, and the site says so rather than drawing a line through one point.
+**A short tape.** `tokidx collect` is live and the daily workflow appends one
+dated snapshot a day, and the site plots the series — each date priced from
+its own snapshot, the line broken on any withheld day rather than bridged. But
+the series is days long. Every time-dependent control — staleness, seller
+dropout, level shifts — reports `not_evaluable` until there is enough history
+to judge against, rather than passing on no evidence.
 
 ---
 

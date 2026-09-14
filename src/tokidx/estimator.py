@@ -157,7 +157,7 @@ DISPERSION_QUANTILE = 0.90
 
 #: Share of sellers at one identical price above which the fixing is flagged.
 #:
-#: Half. Not calibrated -- there is one collection date -- but the threshold
+#: Half. Not calibrated -- the tape is days long -- but the threshold
 #: has a meaning rather than a fitted value: above it, the median is the modal
 #: price by construction, so the central estimate is one seller's number and
 #: the rest are followers of it.
