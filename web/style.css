@@ -145,6 +145,19 @@ code, .mono { font-family: var(--mono); }
 .panel .note { font-family: var(--mono); font-size: 12.5px; color: var(--muted); margin-left: auto; }
 .panel .body { padding: 20px 22px; }
 
+/* The board is six columns and Contributions is seven, and `th` below is
+   nowrap, so neither can shrink past its header row -- about 594px. On a phone
+   that is wider than the viewport, and the board sat in a plain div, so it
+   widened the *document* instead. A sticky topbar is only as wide as the
+   viewport: scrolling right to read the table slid the nav off to the left.
+   Contributions escaped that only because .panel clips it, which loses the
+   right-hand columns with no way to reach them. Both scroll in place now.
+
+   method.html already wrapped its three tables in `.tw` for this, but no rule
+   was ever written for that class, so the wrapper did nothing and the widest
+   of them widened the document on its own. */
+#board-table, .table-scroll, .tw { overflow-x: auto; }
+
 table { width: 100%; border-collapse: collapse; }
 th {
   font-family: var(--ui); font-size: 11px; font-weight: 600; letter-spacing: .1em;
@@ -234,6 +247,17 @@ footer.site {
   .topbar { padding: 0 18px; }
   th, td { padding-left: 14px; padding-right: 14px; }
   .spread-row { grid-template-columns: 92px 1fr 68px; }
+}
+
+/* Below about 380px the brand, three links and the theme button no longer fit
+   on one line, and the topbar was pushing the document wider than the viewport
+   -- which slides a sticky bar off to the left the moment anyone scrolls right.
+   Tighten the nav's own spacing rather than let it set the page width. */
+@media (max-width: 420px) {
+  .topbar { padding: 0 12px; gap: 10px; }
+  .topbar nav { gap: 0; }
+  .topbar nav a { padding: 15px 5px; font-size: 12.5px; }
+  .theme-toggle { margin-left: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

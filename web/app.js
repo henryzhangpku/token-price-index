@@ -239,6 +239,7 @@ function contributionsPanel(idx) {
       <h2>Contributions</h2>
       <span class="note">${idx.providers.length} seller${idx.providers.length === 1 ? "" : "s"} · ${idx.rejections} observations discarded</span>
     </header>
+    <div class="table-scroll">
     <table>
       <thead><tr>
         <th>seller</th><th class="r">price</th><th class="r">quotes</th>
@@ -254,6 +255,7 @@ function contributionsPanel(idx) {
         <td><span class="reason">${escapeHtml(p.screen_reason || "")}</span></td>
       </tr>`).join("")}</tbody>
     </table>
+    </div>
   </div>`;
 }
 
