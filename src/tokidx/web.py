@@ -14,7 +14,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from .pipeline import default_index_date, run_all
+from .pipeline import default_index_date, run_all, run_series
 from .sources import all_observations, collected_at, collection_dates
 from .spec import (
     CONTRACTS,
@@ -55,6 +55,22 @@ def build_bundle(index_date: date | None = None) -> dict[str, Any]:
                 "max_dispersion": DEFAULT_GATES.max_dispersion,
                 "max_provider_weight_share": DEFAULT_GATES.max_provider_weight_share,
             },
+        },
+        # One entry per collection date per contract, oldest first, computed
+        # from that date's snapshot alone. A withheld day carries value null
+        # rather than being dropped, so the chart can break the line there
+        # instead of bridging a price that was never published.
+        "series": {
+            code: [
+                {
+                    "index_date": f.index_date.isoformat(),
+                    "value": f.value if f.published else None,
+                    "published": f.published,
+                    "withheld_reason": f.withheld_reason,
+                }
+                for f in fixings_for_code
+            ]
+            for code, fixings_for_code in run_series().items()
         },
         "indices": [
             {

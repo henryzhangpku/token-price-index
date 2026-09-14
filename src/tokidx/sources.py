@@ -17,7 +17,7 @@ grows by one file a day rather than by a value appearing from nowhere.
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from .models import Observation
@@ -123,3 +123,19 @@ def collected_at(directory: Path | None = None) -> datetime:
 
 def collection_dates(directory: Path | None = None) -> list[str]:
     return [p.stem for p in snapshot_paths(directory)]
+
+
+def snapshot_series(
+    directory: Path | None = None,
+) -> list[tuple[date, list[Observation]]]:
+    """Every collection date and what was read that day, oldest first.
+
+    ``all_observations`` reads only the newest file on purpose: a fixing must
+    never mix two days' prices. The series is that same rule applied once per
+    file rather than once, so each date's value follows from that date's inputs
+    and from nothing else -- which is the only construction that lets a past
+    value be checked after the fact.
+    """
+    return [(moment.date(), observations)
+            for path in snapshot_paths(directory)
+            for observations, moment in [read_snapshot(path)]]

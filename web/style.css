@@ -339,6 +339,17 @@ footer.site {
 .chart .who{ font-family:var(--mono); font-size:10.5px; fill:var(--muted) }
 .chart .amt{ font-family:var(--mono); font-size:11px; fill:var(--ink); font-weight:500 }
 .chart .fixing{ stroke:var(--accent); stroke-width:2; stroke-dasharray:5 4; opacity:.9 }
+/* Series marks. `.line` is solid where `.fixing` is dashed, because one is a
+   value and the other is a level drawn across a distribution. A segment never
+   spans a withheld date, so a break in the line is a fact, not a gap in the
+   drawing. `.lone` rings a published day with withheld days either side, which
+   has no segment to belong to. */
+.chart .line{ fill:none; stroke:var(--accent); stroke-width:2;
+              stroke-linejoin:round; stroke-linecap:round }
+.chart .lone{ fill:none; stroke:var(--accent); stroke-width:2 }
+.chart .cell{ stroke:none }
+.chart .cell.on{ fill:var(--accent); opacity:.8 }
+.chart .cell.off{ fill:var(--withheld); opacity:.55 }
 .chart .fixing-label{ font-family:var(--mono); font-size:10.5px; fill:var(--accent) }
 .legend{
   display:flex; flex-wrap:wrap; gap:20px; margin-top:6px;
