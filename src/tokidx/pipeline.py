@@ -5,9 +5,9 @@ from __future__ import annotations
 from datetime import date
 
 from .estimator import estimate
-from .models import Fixing
+from .models import Fixing, Observation
 from .normalize import normalize_all
-from .sources import all_observations, collected_at
+from .sources import all_observations, collected_at, snapshot_series
 from .spec import CONTRACTS, DEFAULT_GATES, Gates
 
 
@@ -23,9 +23,16 @@ def default_index_date() -> date:
 
 
 def run(index_code: str, index_date: date | None = None,
-        gates: Gates | None = None) -> Fixing:
-    """Produce one fixing, published or withheld."""
-    observations = all_observations()
+        gates: Gates | None = None,
+        observations: list[Observation] | None = None) -> Fixing:
+    """Produce one fixing, published or withheld.
+
+    ``observations`` defaults to the newest snapshot. It is a parameter so the
+    series can re-run a past day against that day's file, rather than against
+    today's -- the whole point of keeping the snapshots.
+    """
+    if observations is None:
+        observations = all_observations()
     quotes, rejections = normalize_all(observations, index_code)
     return estimate(
         index_code,
@@ -37,5 +44,21 @@ def run(index_code: str, index_date: date | None = None,
 
 
 def run_all(index_date: date | None = None,
-            gates: Gates | None = None) -> dict[str, Fixing]:
-    return {code: run(code, index_date, gates) for code in CONTRACTS}
+            gates: Gates | None = None,
+            observations: list[Observation] | None = None) -> dict[str, Fixing]:
+    return {code: run(code, index_date, gates, observations) for code in CONTRACTS}
+
+
+def run_series(gates: Gates | None = None) -> dict[str, list[Fixing]]:
+    """Every contract's fixing on every collection date, oldest first.
+
+    A withheld day stays in the list as a withheld Fixing rather than being
+    dropped. A series that silently omits the days it could not price is a
+    series with no gaps, which is a lie about the market -- and the gap is the
+    thing the gates exist to produce.
+    """
+    series: dict[str, list[Fixing]] = {code: [] for code in CONTRACTS}
+    for day, observations in snapshot_series():
+        for code, fixing in run_all(day, gates, observations).items():
+            series[code].append(fixing)
+    return series

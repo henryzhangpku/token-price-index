@@ -46,3 +46,40 @@ def test_values_do_not_depend_on_the_index_date() -> None:
     a = {c: f.value for c, f in run_all(date(2026, 1, 2)).items()}
     b = {c: f.value for c, f in run_all(date(2030, 12, 31)).items()}
     assert a == b
+
+
+def test_each_date_in_the_series_is_priced_from_its_own_snapshot() -> None:
+    """The point of keeping snapshots: a past fixing follows from past inputs.
+
+    run() defaults to the newest snapshot, so a series built without passing
+    observations would re-price every historical date with today's prices --
+    a flat line that looks like a stable market and is actually one day
+    repeated.
+    """
+    from tokidx.pipeline import run_series
+    from tokidx.sources import snapshot_series
+
+    days = [day for day, _ in snapshot_series()]
+    for fixings in run_series().values():
+        assert [f.index_date for f in fixings] == days
+
+    if len(days) > 1:
+        # At least one index must actually move, or the per-date wiring is
+        # silently returning the same snapshot for every date.
+        moved = any(
+            len({f.value for f in fixings if f.published}) > 1
+            for fixings in run_series().values()
+        )
+        assert moved, "no index moved across dates; the series is one day repeated"
+
+
+def test_a_withheld_date_stays_in_the_series_as_a_gap() -> None:
+    """Dropping withheld days would produce a series with no gaps, which is a
+    lie about a market the gates refused to price."""
+    from tokidx.web import build_bundle
+
+    bundle = build_bundle()
+    for code, entries in bundle["series"].items():
+        assert len(entries) == len(bundle["collection_dates"]), code
+        for e in entries:
+            assert (e["value"] is None) is (not e["published"]), (code, e)

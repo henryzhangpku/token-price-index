@@ -116,12 +116,17 @@ function renderAsOf(data) {
   const note = $("#asof-note");
   const label = $("#asof-label");
   if (!note || !label) return;
-  note.textContent = `1 revision across 1 date`;
-  label.innerHTML =
-    `<strong>${escapeHtml(data.index_date)}</strong> &mdash; the only revision on the tape. `
-    + `There is one collection date, so there is nothing earlier to read back to yet. `
-    + `The control appears here because the machinery is in place, not to imply a history `
-    + `that does not exist.`;
+  const dates = (data.collection_dates || []).length || 1;
+  note.textContent = `${dates} revision${dates === 1 ? "" : "s"} across ${dates} date${dates === 1 ? "" : "s"}`;
+  label.innerHTML = dates <= 1
+    ? `<strong>${escapeHtml(data.index_date)}</strong> &mdash; the only revision on the tape. `
+      + `There is one collection date, so there is nothing earlier to read back to yet. `
+      + `The control appears here because the machinery is in place, not to imply a history `
+      + `that does not exist.`
+    : `<strong>${escapeHtml(data.index_date)}</strong> &mdash; newest of `
+      + `${dates} collection dates on the tape. Each date's fixing is computed from that `
+      + `date's snapshot alone, so a past value can still be shown to follow from its own `
+      + `inputs. The series chart plots them.`;
 }
 
 /* ---------- the chart --------------------------------------------------- */
@@ -216,6 +221,129 @@ function chartPanel(idx) {
   </div>`;
 }
 
+/* ---------- the series -------------------------------------------------- */
+
+/* One point per collection date. The line BREAKS on a withheld day rather than
+ * bridging it: a bridged segment draws a price that was never published, which
+ * is the visual form of the carry-forward the gates exist to prevent. Same
+ * grammar as the compute benchmark's series, deliberately.
+ */
+function seriesPanel(idx, data) {
+  const entries = (data.series && data.series[idx.code]) || [];
+  const values = entries.filter((e) => e.value !== null).map((e) => e.value);
+
+  if (!entries.length) {
+    return "";
+  }
+  if (!values.length) {
+    return `<div class="panel">
+      <header><h2>Series</h2>
+        <span class="note">${entries.length} date${entries.length === 1 ? "" : "s"}</span>
+      </header>
+      <div class="body"><p class="chart-note">Every date so far was withheld, so this
+        index has printed no value to plot. The gap is the finding.</p></div>
+    </div>`;
+  }
+
+  const W = 720, H = 240;
+  const pad = { t: 18, r: 24, b: 64, l: 58 };
+  const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+  const stripY = H - 40, stripH = 9;
+
+  let lo = Math.min(...values), hi = Math.max(...values);
+  if (hi === lo) { const c = hi || 1; lo = c * 0.95; hi = c * 1.05; }
+  const span = hi - lo;
+  lo -= span * 0.18; hi += span * 0.18;
+
+  const n = entries.length;
+  const x = (i) => pad.l + (n === 1 ? iw / 2 : (i * iw) / (n - 1));
+  const y = (v) => pad.t + ih - ((v - lo) / (hi - lo)) * ih;
+
+  let grid = "";
+  for (let i = 0; i <= 4; i++) {
+    const v = lo + ((hi - lo) * i) / 4, yy = y(v);
+    grid += `<line class="grid" x1="${pad.l}" y1="${yy.toFixed(1)}" x2="${W - pad.r}" y2="${yy.toFixed(1)}"/>`
+          + `<text class="tick" x="${pad.l - 9}" y="${(yy + 3.5).toFixed(1)}" text-anchor="end">$${fmt(v, 3)}</text>`;
+  }
+
+  // Consecutive published days form one segment; a withheld day ends it.
+  const segments = [];
+  let run = [];
+  entries.forEach((e, i) => {
+    if (e.value === null) { if (run.length) segments.push(run); run = []; }
+    else run.push([x(i), y(e.value)]);
+  });
+  if (run.length) segments.push(run);
+
+  // A lone published day between two withheld ones has no line to belong to and
+  // would read as an unexplained speck, so it is ringed instead.
+  const lines = segments.map((seg) =>
+    seg.length === 1
+      ? `<circle class="lone" cx="${seg[0][0].toFixed(1)}" cy="${seg[0][1].toFixed(1)}" r="6"/>`
+      : `<path class="line" d="M ${seg.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" L ")}"/>`
+  ).join("");
+
+  const dots = entries.map((e, i) => e.value === null ? "" :
+    `<circle class="dot" cx="${x(i).toFixed(1)}" cy="${y(e.value).toFixed(1)}" r="3.5">
+       <title>${escapeHtml(e.index_date)}: $${fmt(e.value)}</title></circle>`).join("");
+
+  // One cell per date, so a run of withheld days is legible as a pattern
+  // without competing with the prices for vertical space.
+  const cellW = Math.max(6, Math.min(22, (n > 1 ? iw / (n - 1) : iw) * 0.55));
+  const strip = entries.map((e, i) => {
+    const cx = Math.min(Math.max(x(i) - cellW / 2, pad.l), W - pad.r - cellW);
+    const tip = e.value !== null
+      ? `${e.index_date}: published at $${fmt(e.value)}`
+      : `${e.index_date}: withheld — ${e.withheld_reason || "gated"}`;
+    return `<rect class="cell ${e.value !== null ? "on" : "off"}" x="${cx.toFixed(1)}" y="${stripY}"
+                  width="${cellW.toFixed(1)}" height="${stripH}" rx="2"><title>${escapeHtml(tip)}</title></rect>`;
+  }).join("");
+
+  const step = Math.max(1, Math.ceil(n / 7));
+  const xlabels = entries.map((e, i) =>
+    (i % step === 0 || i === n - 1)
+      ? `<text class="tick" x="${x(i).toFixed(1)}" y="${H - 10}" text-anchor="${
+          i === 0 ? "start" : i === n - 1 ? "end" : "middle"}">${escapeHtml(e.index_date.slice(5))}</text>`
+      : "").join("");
+
+  const withheldCount = entries.filter((e) => e.value === null).length;
+  const first = values.length ? entries.find((e) => e.value !== null) : null;
+  const last = [...entries].reverse().find((e) => e.value !== null);
+  let note;
+  if (n === 1) {
+    note = `One collection date. The machinery plots a series; there is not yet a series to plot.`;
+  } else if (first && last && first !== last) {
+    const move = (last.value - first.value) / first.value;
+    note = `${escapeHtml(first.index_date)} to ${escapeHtml(last.index_date)}: `
+         + `$${fmt(first.value)} to $${fmt(last.value)}, `
+         + `<strong>${move >= 0 ? "+" : ""}${(move * 100).toFixed(1)}%</strong>.`
+         + (withheldCount ? ` ${withheldCount} date${withheldCount === 1 ? "" : "s"} withheld and printed nothing; the line breaks there rather than bridging a price that never existed.` : "");
+  } else {
+    note = `A single published date so far.`;
+  }
+
+  return `<div class="panel">
+    <header>
+      <h2>Series</h2>
+      <span class="note">${n} date${n === 1 ? "" : "s"}${withheldCount ? ` · ${withheldCount} withheld` : ""}</span>
+    </header>
+    <div class="body">
+      <svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+           aria-label="Published fixings over time for ${escapeHtml(idx.code)}. ${withheldCount} of ${n} dates withheld.">
+        ${grid}${lines}${dots}
+        <text class="tick" x="${pad.l - 9}" y="${stripY + stripH - 1}" text-anchor="end">status</text>
+        ${strip}${xlabels}
+      </svg>
+      <div class="legend">
+        <span class="key line-key">published fixing</span>
+        <span class="key dot-key">collection date</span>
+        <span class="key none-key">withheld — no value printed</span>
+      </div>
+      <p class="chart-note">${note}</p>
+    </div>
+  </div>`;
+}
+
 /* ---------- detail panels ----------------------------------------------- */
 
 function gatesPanel(idx) {
@@ -286,7 +414,7 @@ function renderDetail() {
   const host = $("#detail");
   if (!host || !DATA) return;
   const idx = DATA.indices.find((i) => i.code === CURRENT) || DATA.indices[0];
-  host.innerHTML = chartPanel(idx) + gatesPanel(idx)
+  host.innerHTML = seriesPanel(idx, DATA) + chartPanel(idx) + gatesPanel(idx)
     + contributionsPanel(idx) + contractPanel(idx, DATA);
 }
 
