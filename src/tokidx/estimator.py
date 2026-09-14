@@ -231,8 +231,11 @@ def estimate(
     # Counting sellers overstates independence when most of them quote the
     # same number. Reported next to the fixing for the same reason the venue
     # count is reported next to the seller count.
+    # Strictly above: at exactly half the median need not be the modal price,
+    # and the boundary is not a breach. Same rule as the sibling benchmark's
+    # venue concentration flag.
     share = modal_share(contributing)
-    if share is not None and share >= MODAL_SHARE_FLAG:
+    if share is not None and share > MODAL_SHARE_FLAG:
         at_mode = round(share * len(contributing))
         flags.append(
             Flag(

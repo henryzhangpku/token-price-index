@@ -321,7 +321,7 @@ summed in a fixed order and rounded once, at four decimal places.
 ## Tests
 
 ```bash
-uv run pytest -q            # 42 tests
+uv run pytest -q
 uvx ruff check src tests
 ```
 
