@@ -24,7 +24,8 @@ def test_the_index_date_comes_from_the_observations() -> None:
 
 
 def test_the_bundle_is_byte_identical_across_runs() -> None:
-    """What CI actually checks, asserted here so it fails fast and locally."""
+    """CI used to catch this by diffing a committed bundle; it is asserted here
+    instead, because the bundle is no longer committed."""
     assert build_bundle() == build_bundle()
 
 

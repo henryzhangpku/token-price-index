@@ -86,6 +86,12 @@ def explain(index_code: str = typer.Argument(...),
             index_date: str | None = typer.Option(None, "--date")) -> None:
     """Walk one fixing from published prices to the decision."""
     day = date.fromisoformat(index_date) if index_date else default_index_date()
+    if index_code not in CONTRACTS:
+        # A mistyped or renamed code is the likeliest way to arrive here, so say
+        # what does exist rather than raising KeyError through the traceback.
+        console.print(f"\n[yellow]no contract {index_code!r}[/]")
+        console.print(f"[dim]try one of: {', '.join(CONTRACTS)}[/]\n")
+        raise typer.Exit(2)
     contract = CONTRACTS[index_code]
     f = run(index_code, day)
 

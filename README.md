@@ -14,7 +14,7 @@ which asks the same question of compute rental.
 
 **What is here.** Live daily collection from a public source that publishes, per
 model, what each independent seller charges to serve the identical weights --
-97 observations across 35 sellers on the first run. Collection and estimation
+102 observations across 37 sellers on the first run. Collection and estimation
 are separate processes: `tokidx collect` reaches the network once and writes a
 dated snapshot, and everything downstream reads that file and reaches nowhere,
 so a published value can always be shown to follow from its own inputs. A
@@ -49,17 +49,16 @@ daily fixing
 +-----------------------------------------------------------------------------+
 |index            | value | prov | obs |  disp | status    | why              |
 |-----------------+-------+------+-----+-------+-----------+------------------|
-|TIX-GLM53-OUT    | 0.331 |   27 |  27 | 0.000 | published |                  |
-|TIX-GLM53-IN     | 0.099 |   27 |  27 | 0.000 | published |                  |
-|TIX-K3-OUT       | 9.403 |   16 |  19 | 0.111 | published |                  |
-|TIX-DSV41-OUT    | 0.701 |   12 |  12 | 0.171 | published |                  |
-|TIX-MM3-OUT      | 0.923 |   12 |  12 | 0.000 | published |                  |
-|TIX-FRONTIER-OUT |    -- |    0 |   0 |    -- | withheld  | indexable good,  |
+|TIX-GLM53-OUT    | 0.331 |   27 |  27 | 0.340 | published |                  |
+|TIX-GLM53-IN     | 0.099 |   27 |  27 | 0.360 | published |                  |
+|TIX-K3-OUT       | 9.403 |   16 |  19 | 0.175 | published |                  |
+|TIX-DSV41-OUT    | 0.701 |   12 |  12 | 0.495 | published |                  |
+|TIX-MM3-OUT      |    -- |   12 |  12 | 0.920 | withheld  | dispersion       |
+|TIX-FRONTIER-OUT |    -- |    2 |   5 |    -- | withheld  | indexable good,  |
 |                 |       |      |     |       |           | min providers,   |
-|                 |       |      |     |       |           | min observations,|
 |                 |       |      |     |       |           | dispersion       |
 +-----------------------------------------------------------------------------+
-  USD per million tokens. 1 of 6 indices decline to print,
+  USD per million tokens. 2 of 6 indices decline to print,
   and 1 of those cannot print by construction rather than for want of data.
 ```
 
@@ -77,14 +76,15 @@ benchmark.
 **Open-weight models are the opposite.** The same weights are served by many
 independent sellers competing on price, and the spread is real:
 
-| Kimi K2.6, output | price per Mtok |
+| Kimi K3, output | price per Mtok |
 |---|---|
-| DeepInfra | $3.50 |
-| Fireworks | $4.00 |
-| Together | $4.50 |
+| DeepInfra | $9.263 |
+| Together | $9.750 |
+| Fireworks | $10.725 |
 
-Identical weights, three sellers, a 29% spread. That is a market, and an index
-over it measures something.
+Identical weights, three sellers, a 16% spread — and across all sixteen sellers
+that survive the screen the spread is 1.5×. That is a market, and an index over
+it measures something.
 
 So `TIX-FRONTIER-OUT` is included **specifically to be refused.** The gate that
 stops it is `indexable_good`, and it fails before any question of data
@@ -94,7 +94,7 @@ sufficiency arises.
 
 ```bash
 uv run tokidx publish                     # the board
-uv run tokidx explain TIX-K26-OUT         # one fixing, end to end
+uv run tokidx explain TIX-K3-OUT          # one fixing, end to end
 uv run tokidx explain TIX-FRONTIER-OUT    # why a good can be unindexable
 uv run tokidx contracts                   # goods, tiers, factors, gates
 uv run tokidx calibrate                   # test the factors against sellers
@@ -154,20 +154,21 @@ times. See METHODOLOGY section 5.
 flowchart LR
     subgraph durable ["committed — the durable record"]
         SNAP[("data/observations/<br/>one file per collection date")]
-        BUNDLE[("web/data/fixings.json<br/>what the site serves")]
     end
 
     subgraph derived ["gitignored — derived state"]
         DB[("SQLite<br/>rebuilt from snapshots")]
+        BUNDLE[("web/data/fixings.json<br/>built at deploy time")]
     end
 
     COLLECT["tokidx collect"] --> SNAP
     SNAP --> PUBLISH["tokidx publish"]
     PUBLISH --> DB
-    PUBLISH --> BUNDLE
-    SNAP --> CI{"does the committed bundle<br/>match a fresh one?"}
-    BUNDLE --> CI
-    CI -- no --> FAIL["CI fails the build"]
+    SNAP --> EXPORT["tokidx export-web"]
+    EXPORT --> BUNDLE
+    BUNDLE --> CI{"does it carry<br/>any indices?"}
+    CI -- no --> FAIL["the deploy fails"]
+    CI -- yes --> PAGES["published to Pages"]
 ```
 
 
@@ -192,7 +193,7 @@ band against the consensus.
 **Gate publication** on whether the good is indexable, the seller count, the
 observation count, and dispersion. Every gate must hold.
 
-**And withholding is a first-class outcome.** Three of five indices decline to
+**And withholding is a first-class outcome.** Two of six indices decline to
 print. A gap in a series is a fact about the market; an interpolated value is a
 fiction about it.
 
@@ -212,8 +213,10 @@ uv run tokidx export-web --out web/data   # the JSON the static site reads
 <https://henryzhangpku.github.io/token-price-index/>
 
 The dashboard renders what the pipeline decided and recomputes nothing, so the
-page and the CLI cannot disagree about a published number. CI rebuilds the
-bundle and fails if the committed copy differs.
+page and the CLI cannot disagree about a published number. The bundle is not
+committed: it is generated at deploy time from the observations by `tokidx
+export-web`, so there is no second copy to fall out of date. The deploy fails
+rather than publishing an empty board.
 
 Asset URLs are stamped with a content hash and CI checks the stamps, because a
 stale version string keeps an old script live while the repository holds the
@@ -221,7 +224,7 @@ new one — a bug with no explanation anywhere in the source.
 
 ## The durable record
 
-Two things are committed, and between them they are the whole audit trail.
+One thing is committed, and it is the whole audit trail.
 
 `data/observations/YYYY-MM-DD.json` — exactly what each seller published, as
 read, one file per collection date. Collection and estimation are separate
@@ -229,9 +232,12 @@ processes for this reason: a pipeline that fetches and computes in one pass can
 never show that a past value follows from its own inputs, because those inputs
 are gone by the time anyone asks.
 
-`web/data/fixings.json` — what was published, and the gates behind it.
+Everything else is derived from those files and deliberately not committed.
+`web/data/fixings.json` — what was published, and the gates behind it — is
+rebuilt at deploy time, because a committed copy is only ever a second version
+of the truth waiting to fall out of date.
 
-The SQLite store is derived and gitignored. It is bitemporal and append-only: a
+The SQLite store is derived and gitignored too. It is bitemporal and append-only: a
 correction writes a new revision, stamps the old one, and must carry a reason.
 `as_of(index_date, knowledge_time)` answers what the tape said for a date *as
 known at a moment*, which is the only question a settlement dispute can use.
@@ -303,7 +309,9 @@ binds on the cache factor.
 `date.today()`, so re-running an unchanged observation set on a later day
 produced a later fixing. CI caught it when the committed bundle stopped matching
 a fresh one. That is the carry-forward behaviour the gates exist to prevent,
-arriving through the back door.
+arriving through the back door. The bundle is no longer committed, so that
+particular tripwire is gone; `tests/test_determinism.py` now asserts the
+property directly, which fails faster and locally.
 
 **A published number needs a stated precision.** Two orderings of the same market
 produced values differing in the last bit, because floating-point addition is
@@ -342,10 +350,11 @@ and this index treats a token as a token. That is the hedonic problem official
 statisticians handle for computer prices, and it is not handled here. A falling
 series may be describing better models rather than cheaper ones.
 
-**Curated inputs, not a live collector.** Prices are read from sellers'
-published pages, dated, and sourced, but they are a snapshot rather than a
-scrape. The pipeline is written so a live collector drops in behind the same
-interface.
+**One collection date, so no series yet.** `tokidx collect` is live and the
+daily workflow appends a dated snapshot, but at the time of writing the tape
+holds a single fixing. Every time-dependent control — staleness, seller
+dropout, level shifts — reports `not_evaluable` rather than passing on no
+evidence, and the site says so rather than drawing a line through one point.
 
 ---
 
