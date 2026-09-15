@@ -182,8 +182,8 @@ The effect was uniform and invisible from inside the pipeline. The sellers
 were consistent, the gates held, the tests passed, and the site printed
 $0.325 for GLM 5.3 output while seventeen of twenty-seven sellers charged
 $0.50. Kimi K3 printed 9.32 against a market at 14.34. DeepSeek V4.1 printed
-0.82 against 1.19 — and read a dispersion of 0.184 where the market's is
-0.033, because sellers quoting identical prices at different window sizes
+0.82 against 1.19 — and read a dispersion of 0.184 where that snapshot's
+market measures 0.033, because sellers quoting identical prices at different window sizes
 were being multiplied by different factors and spread apart.
 
 It was found the day the sensitivity measure was ported from the compute
