@@ -14,7 +14,7 @@ from rich.table import Table
 
 from .archive import append_to_tape, stamp_superseded, tape_row
 from .models import Fixing
-from .normalize import serving_check
+from .normalize import serving_check, serving_mix
 from .pipeline import default_index_date, run, run_all
 from .sources import all_observations, collected_at, latest_snapshot
 from .spec import (
@@ -297,9 +297,59 @@ def calibrate() -> None:
         "has, and it covers two of its four factors.",
         expand=False,
     ))
-    evidence = serving_check(all_observations())
+    observations = all_observations()
+    evidence = serving_check(observations)
     if not evidence:
-        console.print("\n[yellow]no seller publishes the same good two ways[/]\n")
+        # SAY WHY, NOT JUST THAT. "No seller publishes the same good two ways"
+        # is true whichever way it happened, and the two ways matter: a market
+        # where sellers genuinely offer one mode is a fact about the market,
+        # while a SOURCE that reports one mode is a fact about the feed. Here
+        # it is the feed, and the consequence is that the schedule below never
+        # fires at all -- which is the same thing `sensitivity` reports as 0%
+        # restated weight, seen from the other side.
+        mix = serving_mix(observations)
+        m = _table(title="[bold]serving mix of the observations[/]", title_justify="left")
+        m.add_column("serving")
+        m.add_column("observations", justify="right")
+        m.add_column("share", justify="right")
+        total = sum(mix.values()) or 1
+        for serving, count in mix.items():
+            m.add_row(serving, str(count), f"{count / total:.0%}")
+        console.print()
+        console.print(m)
+
+        sole = next(iter(mix), None)
+        console.print(
+            f"\n[yellow]No ratio is observable from this source.[/] Every one of "
+            f"{total} observations arrives as [bold]{sole}[/], so no seller publishes the "
+            "same good two ways here and nothing in the schedule below can be checked "
+            "against a price."
+        )
+        console.print(
+            "\n  [dim]What that does and does not mean. The schedule is INERT, not\n"
+            "  merely unvalidated: with every input already on the benchmark good,\n"
+            "  no factor is ever applied, and `sensitivity` says the same thing as\n"
+            "  0% restated weight. The asserted numbers are not measured here --\n"
+            "  they are the ratios Anthropic and OpenAI both publish, which is a\n"
+            "  convention rather than one vendor's discount policy (METHODOLOGY\n"
+            "  section 4). They would need calibrating before this index ever\n"
+            "  admits a second source that reports serving.[/]"
+        )
+
+        f = _table(title="[bold]the schedule, asserted and unexercised[/]", title_justify="left")
+        for col in ("serving", "factor", "standing"):
+            f.add_column(col, justify="right" if col != "serving" else "left")
+        for serving, factor in SERVING_FACTORS.items():
+            if factor == 1.00:
+                standing = "the benchmark good"
+            elif factor > MAX_TOTAL_ADJUSTMENT:
+                standing = f"exclusion in practice: {factor:.0f}x exceeds the {MAX_TOTAL_ADJUSTMENT:.1f}x ceiling"
+            else:
+                standing = "asserted; never applied on this source"
+            f.add_row(serving.value, f"{factor:.2f}", standing)
+        console.print()
+        console.print(f)
+        console.print()
         raise typer.Exit(0)
 
     t = _table(title="[bold]observed vs asserted[/]", title_justify="left")

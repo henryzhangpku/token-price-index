@@ -92,6 +92,22 @@ def normalize_all(
     return quotes, rejections
 
 
+def serving_mix(observations: list[Observation]) -> dict[str, int]:
+    """How many observations arrived under each serving mode, largest first.
+
+    ``serving_check`` returning nothing has two very different causes and the
+    caller cannot tell them apart: every seller might publish one way only, or
+    the SOURCE might report one way only. The second is what happens here --
+    OpenRouter reports every observation as ``standard`` -- and it means the
+    serving schedule is inert rather than unvalidated. A reader is owed the
+    count that distinguishes them.
+    """
+    counts: dict[str, int] = {}
+    for obs in observations:
+        counts[obs.serving.value] = counts.get(obs.serving.value, 0) + 1
+    return dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
+
+
 def serving_check(observations: list[Observation]) -> list[tuple[str, str, float]]:
     """Where one seller publishes the same good two ways, the ratio is evidence.
 

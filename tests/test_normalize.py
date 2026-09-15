@@ -12,7 +12,7 @@ import pytest
 from conftest import CODE
 
 from tokidx.models import Quote, Rejection
-from tokidx.normalize import normalize, normalize_all, serving_check
+from tokidx.normalize import normalize, normalize_all, serving_check, serving_mix
 from tokidx.spec import CONTRACTS, MAX_TOTAL_ADJUSTMENT, SERVING_FACTORS, Direction, Serving
 
 CONTRACT = CONTRACTS[CODE]
@@ -142,3 +142,49 @@ def test_serving_check_reads_a_sellers_own_ratio(make_obs):
     assert provider == "a"
     assert good.endswith("batch")
     assert ratio == pytest.approx(2.0)
+
+
+def test_serving_mix_distinguishes_a_one_sided_market_from_a_one_sided_feed(make_obs):
+    """`serving_check` returning nothing has two causes and they are not the same.
+
+    Every seller might genuinely publish one way, or the SOURCE might report
+    one way. Only the second makes the schedule inert rather than merely
+    unvalidated, and a reader cannot tell them apart from an empty result.
+    `serving_mix` is the count that distinguishes them, and it is what
+    `tokidx calibrate` prints instead of asserting the conclusion.
+    """
+    one_sided_feed = [
+        make_obs(provider="a", serving=Serving.STANDARD),
+        make_obs(provider="b", serving=Serving.STANDARD),
+        make_obs(provider="c", serving=Serving.STANDARD),
+    ]
+    assert serving_check(one_sided_feed) == []
+    assert serving_mix(one_sided_feed) == {"standard": 3}
+
+    # Same empty evidence, entirely different situation: two modes are present,
+    # they just never meet at one seller.
+    split = [
+        make_obs(provider="a", serving=Serving.STANDARD),
+        make_obs(provider="b", serving=Serving.BATCH),
+    ]
+    assert serving_check(split) == []
+    assert serving_mix(split) == {"batch": 1, "standard": 1}
+
+    # Largest first, so the dominant mode reads off the top row.
+    skewed = [make_obs(provider=f"p{i}", serving=Serving.STANDARD) for i in range(4)]
+    skewed.append(make_obs(provider="x", serving=Serving.BATCH))
+    assert list(serving_mix(skewed)) == ["standard", "batch"]
+    assert serving_mix([]) == {}
+
+
+def test_the_cache_factor_is_an_exclusion_not_an_adjustment():
+    """10x against a 5x ceiling means a cached input can never be admitted.
+
+    That is deliberate -- nine tenths of the restated number would come from
+    the schedule rather than the seller -- but it makes `cached` an exclusion
+    rule wearing a factor's clothes, and `calibrate` now says so rather than
+    listing it beside factors that could actually fire.
+    """
+    assert SERVING_FACTORS[Serving.CACHED] > MAX_TOTAL_ADJUSTMENT
+    assert SERVING_FACTORS[Serving.BATCH] <= MAX_TOTAL_ADJUSTMENT
+    assert SERVING_FACTORS[Serving.STANDARD] == 1.00
