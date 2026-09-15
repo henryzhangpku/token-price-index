@@ -21,9 +21,13 @@ def _isolated_store(tmp_path, monkeypatch):
     real data/tokidx.db would leave a revision behind that the next real
     publish then refuses to overwrite without a reason.
     """
+    import tokidx.archive
     import tokidx.store
 
     monkeypatch.setattr(tokidx.store, "DEFAULT_DB", tmp_path / "isolated.db")
+    # The tape is committed, so a test that appended to the real one would
+    # leave a publication record behind that was never published.
+    monkeypatch.setattr(tokidx.archive, "TAPE_PATH", tmp_path / "isolated-tape.csv")
 
 
 @pytest.fixture

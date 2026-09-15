@@ -233,6 +233,42 @@ class Store:
         self.conn.commit()
         return revision
 
+    def restore(self, row: dict) -> None:
+        """Load one tape row verbatim, revision numbering intact.
+
+        ``record`` numbers revisions itself and demands a reason for every
+        restatement. A rebuild is not a restatement -- it is the tape being
+        read back -- so the row goes in exactly as published, and a row that
+        is already present is replaced by its own copy rather than duplicated.
+        Contributions and flags are not on the tape and are not restored;
+        ``explain`` derives the breakdown from the snapshot instead.
+        """
+        key = (row["index_code"], row["index_date"], int(row["revision"]))
+        self.conn.execute(
+            "DELETE FROM fixings WHERE index_code = ? AND index_date = ? AND revision = ?",
+            key,
+        )
+        self.conn.execute(
+            "INSERT INTO fixings (index_code, index_date, revision, status, value,"
+            " dispersion, provider_count, observation_count, withheld_reason,"
+            " methodology_version, published_at, superseded_at, revision_reason, run_id)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)",
+            (
+                *key,
+                row["status"],
+                float(row["value"]) if row.get("value") not in (None, "") else None,
+                float(row["dispersion"]) if row.get("dispersion") not in (None, "") else None,
+                int(row["provider_count"]),
+                int(row["observation_count"]),
+                row.get("withheld_reason") or None,
+                row["methodology_version"],
+                row["published_at"],
+                row.get("superseded_at") or None,
+                row.get("revision_reason") or None,
+            ),
+        )
+        self.conn.commit()
+
     # -- reading ------------------------------------------------------------
 
     def as_of(
