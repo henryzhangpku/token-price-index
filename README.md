@@ -51,8 +51,8 @@ daily fixing
 |-----------------+--------+------+-----+-------+-----------+-----------------|
 |TIX-GLM53-OUT    |  0.498 |   27 |  27 | 0.340 | published |                 |
 |TIX-GLM53-IN     |  0.149 |   27 |  27 | 0.360 | published |                 |
-|TIX-K3-OUT       | 14.336 |   17 |  20 | 0.170 | published |                 |
-|TIX-DSV41-OUT    |  1.191 |   11 |  11 | 0.033 | published |                 |
+|TIX-K3-OUT       | 14.361 |   17 |  20 | 0.170 | published |                 |
+|TIX-DSV41-OUT    |  1.108 |   18 |  18 | 0.465 | published |                 |
 |TIX-MM3-OUT      |     -- |   13 |  13 | 1.000 | withheld  | dispersion      |
 |TIX-FRONTIER-OUT |     -- |    2 |   5 |    -- | withheld  | indexable good, |
 |                 |        |      |     |       |           | min providers,  |
@@ -315,7 +315,8 @@ flat rate covers — 82 of 110 observations say 1,048,576 — not a long-context
 tier priced above a base rate. The factor multiplied every quote by 0.80 or
 0.65 anyway. Sellers charge $0.50 for GLM 5.3; the site printed $0.325. It
 also spread apart sellers quoting the same price at different window sizes,
-manufacturing dispersion: DeepSeek V4.1 read 0.184 and reads 0.033 now. Found
+manufacturing dispersion: on the 14 September snapshot DeepSeek V4.1 read
+0.184 under the factor and 0.033 without it. Found
 the day the sensitivity measure was ported from the compute benchmark, which
 reported 0 of 27 quotes conforming and 100% of every fixing resting on that one
 factor. Context is a fitness test now — a window short of the contract is a
