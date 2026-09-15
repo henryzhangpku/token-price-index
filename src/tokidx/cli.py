@@ -349,3 +349,56 @@ def collect(
 
 if __name__ == "__main__":
     app()
+
+
+@app.command()
+def sensitivity(index_date: str | None = typer.Option(None, "--date")) -> None:
+    """Measure how much of each fixing rests on the restatement schedule.
+
+    Section 4 of the methodology concedes its factors are judgement and bounds
+    them. This answers the question that concession leaves open: how far does
+    the fixing actually move because of them?
+    """
+    from .normalize import normalize_all
+    from .sensitivity import exposure_all
+
+    day = date.fromisoformat(index_date) if index_date else default_index_date()
+    observations = all_observations()
+    quotes_by_code = {code: normalize_all(observations, code)[0] for code in CONTRACTS}
+    rows = exposure_all(day, quotes_by_code, DEFAULT_GATES)
+
+    console.print(Panel(
+        "The counterfactual recomputes each fixing from quotes that conformed to\n"
+        "the contract as observed -- standard serving, benchmark context -- and\n"
+        "discards every restated one. It is not a better estimate: it throws away\n"
+        "part of the sample and leans on whichever sellers publish the benchmark\n"
+        "configuration natively. It measures dependence on judgement, nothing else.",
+        title=f"restatement exposure · {day}",
+        expand=False,
+    ))
+
+    t = _table()
+    for col in ("index", "published", "conforming only", "shift", "conforming",
+                "adj weight", "still publishable"):
+        t.add_column(col, justify="left" if col == "index" else "right", no_wrap=True)
+    for row in rows:
+        t.add_row(
+            row.index_code,
+            f"{row.published:.3f}" if row.published is not None else "[dim]--[/]",
+            f"{row.conforming_only:.3f}" if row.conforming_only is not None else "[dim]--[/]",
+            f"{row.shift:+.1%}" if row.shift is not None else "[dim]--[/]",
+            f"{row.conforming_quotes}/{row.total_quotes}",
+            f"{row.weight_share_adjusted:.0%}",
+            "[green]yes[/]" if row.publishable_without_adjustment else "[yellow]no[/]",
+        )
+    console.print(t)
+
+    factors: dict[str, float] = {}
+    for row in rows:
+        for name, share in row.by_factor.items():
+            factors[name] = max(factors.get(name, 0.0), share)
+    if factors:
+        console.print("\n  [bold]share of quotes touched by each factor, highest across indices[/]")
+        for name, share in sorted(factors.items(), key=lambda kv: -kv[1]):
+            console.print(f"    {name:10} {share:.0%}")
+    console.print()

@@ -14,7 +14,9 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from .normalize import normalize_all
 from .pipeline import default_index_date, run_all, run_series
+from .sensitivity import exposure
 from .sources import all_observations, collected_at, collection_dates
 from .spec import (
     CONTRACTS,
@@ -100,9 +102,29 @@ def build_bundle(index_date: date | None = None) -> dict[str, Any]:
                     for p in sorted(f.providers, key=lambda p: p.price)
                 ],
                 "rejections": len(f.rejections),
+                # How much of this number is the restatement schedule rather
+                # than the market. Published so the weakest part of the
+                # methodology is a figure a reader can argue with.
+                "exposure": _exposure_entry(code, day),
             }
             for code, f in fixings.items()
         ],
+    }
+
+
+def _exposure_entry(code: str, day: date) -> dict[str, Any]:
+    quotes, _ = normalize_all(all_observations(), code)
+    e = exposure(code, day, quotes, DEFAULT_GATES)
+    return {
+        "published": e.published,
+        "conforming_only": e.conforming_only,
+        "shift": e.shift,
+        "total_quotes": e.total_quotes,
+        "conforming_quotes": e.conforming_quotes,
+        "conforming_providers": e.conforming_providers,
+        "weight_share_adjusted": round(e.weight_share_adjusted, 6),
+        "by_factor": {k: round(v, 6) for k, v in e.by_factor.items()},
+        "publishable_without_adjustment": e.publishable_without_adjustment,
     }
 
 

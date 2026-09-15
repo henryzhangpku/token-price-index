@@ -77,35 +77,35 @@ def test_a_cache_read_is_over_adjusted_and_discarded(make_obs):
     assert f"{MAX_TOTAL_ADJUSTMENT}x" in r.detail
 
 
-@pytest.mark.parametrize(
-    ("context", "factor"),
-    [
-        (64_000, None),        # shorter than benchmark: not priced down
-        (128_000, None),       # the benchmark itself
-        (256_000, 0.80),       # up to 4x: the first step
-        (512_000, 0.80),
-        (1_000_000, 0.65),     # beyond 4x: the second step
-    ],
-)
-def test_long_context_is_a_step_not_a_curve(make_obs, context, factor):
+@pytest.mark.parametrize("context", [128_000, 256_000, 1_048_576])
+def test_a_flat_rate_covering_the_benchmark_window_is_the_benchmark_good(make_obs, context):
+    """The window is what a single rate covers, not a premium tier. A 128k
+    request is served at that rate, so there is nothing to restate.
+
+    An earlier draft multiplied these by 0.80 or 0.65 and every published
+    value came out a third below what any seller charged. Pinned so the
+    factor cannot come back without a seller actually publishing a tier."""
     q = normalize(make_obs(price=1.00, context_tokens=context), CONTRACT)
     assert isinstance(q, Quote)
-    if factor is None:
-        assert q.adjustments == []
-        assert q.usd_per_mtok == 1.00
-    else:
-        assert [a.factor_name for a in q.adjustments] == ["context"]
-        assert q.usd_per_mtok == pytest.approx(factor)
+    assert q.adjustments == []
+    assert q.usd_per_mtok == 1.00
 
 
-def test_adjustments_compose_multiplicatively(make_obs):
-    """Batch at 1M context: x2.0 for serving, x0.65 for context, in that
-    order, and the quote records both so the arithmetic can be replayed."""
+def test_a_window_too_short_for_the_benchmark_is_a_different_good(make_obs):
+    """A 32k window cannot serve a 128k request. That is not a cheaper price
+    for the good; it is not the good."""
+    r = normalize(make_obs(price=0.10, context_tokens=32_000), CONTRACT)
+    assert isinstance(r, Rejection)
+    assert r.reason == "context_too_short"
+    assert "32,000" in r.detail
+
+
+def test_the_serving_factor_is_recorded_so_it_can_be_replayed(make_obs):
     q = normalize(make_obs(price=1.00, serving=Serving.BATCH, context_tokens=1_000_000), CONTRACT)
     assert isinstance(q, Quote)
-    assert [a.factor_name for a in q.adjustments] == ["serving", "context"]
-    assert q.total_adjustment == pytest.approx(2.0 * 0.65)
-    assert q.usd_per_mtok == pytest.approx(1.30)
+    assert [a.factor_name for a in q.adjustments] == ["serving"]
+    assert q.total_adjustment == pytest.approx(2.0)
+    assert q.adjustments[0].reason == "batch restated to standard"
 
 
 def test_the_ceiling_is_reachable():
