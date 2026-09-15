@@ -108,7 +108,7 @@ screen and what weight they carry, and which gates held.
 
 Every arrow that leaves the main line is a place an input is thrown away. Most
 of the work in a benchmark is deciding what does not count -- and the first
-decision here is made before any price is read.
+decision here does not depend on any price at all.
 
 ```mermaid
 flowchart TB
