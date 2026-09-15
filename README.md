@@ -154,16 +154,21 @@ times. See METHODOLOGY section 5.
 flowchart LR
     subgraph durable ["committed — the durable record"]
         SNAP[("data/observations/<br/>one file per collection date")]
+        TAPE[("data/tape.csv<br/>one row per revision, names its snapshot")]
     end
 
     subgraph derived ["gitignored — derived state"]
-        DB[("SQLite<br/>rebuilt from snapshots")]
+        DB[("SQLite<br/>rebuilt from the tape")]
         BUNDLE[("web/data/fixings.json<br/>built at deploy time")]
     end
 
     COLLECT["tokidx collect"] --> SNAP
     SNAP --> PUBLISH["tokidx publish"]
     PUBLISH --> DB
+    PUBLISH --> TAPE
+    TAPE --> VERIFY{"does every row recompute<br/>from the snapshot it names?"}
+    SNAP --> VERIFY
+    VERIFY -- no --> HALT["the daily run fails<br/>before committing"]
     SNAP --> EXPORT["tokidx export-web"]
     EXPORT --> BUNDLE
     BUNDLE --> CI{"does it carry<br/>any indices?"}
@@ -209,6 +214,8 @@ uv run tokidx sensitivity                 # how much of each fixing the factors 
 uv run tokidx rebuild                     # restore the store from the snapshots, one revision per date
 uv run tokidx as-of TIX-K3-OUT 2026-09-14 2026-09-15T00:00Z   # what did we say, as known when
 uv run tokidx revisions TIX-K3-OUT 2026-09-14                 # every revision, superseded ones included
+uv run tokidx verify                      # recompute every published value from its snapshot; exit 1 on drift
+uv run tokidx show TIX-K3-OUT             # the series as the store has it
 uv run tokidx export-web --out web/data   # the JSON the static site reads
 ```
 
@@ -228,18 +235,27 @@ new one — a bug with no explanation anywhere in the source.
 
 ## The durable record
 
-One thing is committed, and it is the whole audit trail.
+Two things are committed, and between them they are the whole audit trail.
 
 `data/observations/YYYY-MM-DD.json` — exactly what each seller published, as
-read, one file per collection date. Collection and estimation are separate
+read, one file per collection date, never modified once written: a second
+collection on the same date is refused, because a tape row may already name
+the file. Collection and estimation are separate
 processes for this reason: a pipeline that fetches and computes in one pass can
 never show that a past value follows from its own inputs, because those inputs
 are gone by the time anyone asks.
 
-Everything else is derived from those files and deliberately not committed.
-`web/data/fixings.json` — what was published, and the gates behind it — is
-rebuilt at deploy time, because a committed copy is only ever a second version
-of the truth waiting to fall out of date.
+`data/tape.csv` — the publication record: one row per revision, append-only,
+each naming the snapshot it was computed from. It cannot be derived from the
+snapshots, because it records *what was published and when*, including values
+later superseded; re-deriving it would erase exactly the history a dispute
+needs. `tokidx verify` recomputes every live row from the file it names and
+fails if any no longer reproduces — the daily run refuses to commit otherwise.
+
+Everything else is derived and deliberately not committed.
+`web/data/fixings.json` — what the site serves — is rebuilt at deploy time,
+because a committed copy is only ever a second version of the truth waiting to
+fall out of date.
 
 The SQLite store is derived and gitignored too. `tokidx rebuild` restores it
 from the snapshots -- each date re-run against its own file and written as that
@@ -270,6 +286,8 @@ src/tokidx/
   models.py       record types; raw observation -> quote -> fixing
   collect.py      the live source, and the venue caveat
   sources.py      dated snapshots on disk; collection is not estimation
+  archive.py      the tape: append-only publication record, names its snapshot
+  reproduce.py    rebuild the store from the tape; verify the tape from the snapshots
   normalize.py    restate onto the contract, or reject with a reason
   estimator.py    seller medians -> screen -> weights -> value, or refuse
   quality.py      staleness, dropout, level shifts; not_evaluable is an answer

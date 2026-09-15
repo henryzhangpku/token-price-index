@@ -62,6 +62,11 @@ jobs:
       - name: Publish today's fixing
         run: uv run tokidx publish
 
+      - name: Verify the series still reproduces from its archive
+        # Fails the run if any published value can no longer be derived from
+        # the snapshot its tape row names.
+        run: uv run tokidx verify
+
       - name: Rebuild the site bundle
         run: uv run tokidx export-web --out web/data
 
@@ -69,10 +74,10 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Only the snapshot is committed. web/data is gitignored and built at
-          # deploy time; naming it here fails the step outright, which is how
-          # the tape stopped growing for two days.
-          git add data/observations
+          # The snapshot and the tape are the durable record. web/data is
+          # gitignored and built at deploy time; naming it here fails the step
+          # outright, which is how the tape stopped growing for two days.
+          git add data/observations data/tape.csv
           if git diff --cached --quiet; then
             echo "nothing changed; no commit" >> "$GITHUB_STEP_SUMMARY"
             exit 0

@@ -34,6 +34,16 @@ class NoSnapshots(FileNotFoundError):
     """
 
 
+class SnapshotExists(FileExistsError):
+    """Raised rather than overwriting a snapshot that is already on disk.
+
+    A snapshot is immutable once written: tape rows name it, and ``verify``
+    recomputes published values from it. A second collection on the same date
+    would silently replace the inputs behind a value already on the tape,
+    which is the one thing the archive exists to prevent.
+    """
+
+
 def snapshot_paths(directory: Path | None = None) -> list[Path]:
     """Every collection snapshot, oldest first."""
     root = directory or SNAPSHOT_DIR
@@ -62,6 +72,11 @@ def write_snapshot(
     root = directory or SNAPSHOT_DIR
     root.mkdir(parents=True, exist_ok=True)
     path = root / f"{collected_at.date().isoformat()}.json"
+    if path.exists():
+        raise SnapshotExists(
+            f"{path.name} is already on disk; snapshots are immutable and a tape "
+            "row may name this one"
+        )
     payload = {
         "collected_at": collected_at.isoformat(),
         "venues": venues or [],

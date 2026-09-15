@@ -12,10 +12,11 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from .archive import append_to_tape, stamp_superseded, tape_row
 from .models import Fixing
 from .normalize import serving_check
 from .pipeline import default_index_date, run, run_all
-from .sources import all_observations, collected_at, latest_snapshot, read_snapshot, snapshot_paths
+from .sources import all_observations, collected_at, latest_snapshot
 from .spec import (
     CONTRACTS,
     DEFAULT_GATES,
@@ -42,12 +43,20 @@ def publish(
         None, "--reason", help="Why an existing fixing is being restated"
     ),
     db: Path | None = typer.Option(None, "--db", help="Store path; default is the working store"),
+    tape: Path | None = typer.Option(None, "--tape", help="Tape path; default is data/tape.csv"),
 ) -> None:
     """Run every index, print the board, and write the fixings to the tape."""
     day = date.fromisoformat(index_date) if index_date else default_index_date()
     fixings = run_all(day)
     with Store(db) as store:
-        written, on_file = _record_all(store, fixings, day, reason)
+        rows, on_file = _record_all(store, fixings, day, reason)
+    written = len(rows)
+    if rows:
+        # The tape is the durable publication record; the store is derived.
+        # Written second, so a tape row never exists for a store write that
+        # failed, and never rewritten -- a restatement is a new row.
+        append_to_tape(rows, tape)
+        stamp_superseded(tape)
 
     console.print(Panel(
         f"[bold]{day}[/]  ·  prices read {collected_at():%Y-%m-%d}  ·  "
@@ -100,25 +109,28 @@ def publish(
 
 def _record_all(
     store: Store, fixings: dict[str, Fixing], day: date, reason: str | None
-) -> tuple[int, int]:
-    """Write each fixing to the tape as a new revision, or leave it alone.
+) -> tuple[list[dict], int]:
+    """Write each fixing to the store as a new revision, or leave it alone.
 
     The first write for a date needs no reason. A second write of the same
     date is a restatement and must say why, so a bare re-run of ``publish``
-    leaves the tape untouched rather than manufacturing revisions -- the
+    leaves the record untouched rather than manufacturing revisions -- the
     store enforces that, and this decides before asking it to.
+
+    Returns the tape rows for what was written, each naming the snapshot it
+    came from, and the count left alone.
     """
-    run_id = store.start_run(
-        collected_at(), len(all_observations()), {"snapshot": latest_snapshot().name},
-    )
-    written = on_file = 0
+    snapshot = latest_snapshot().name
+    run_id = store.start_run(collected_at(), len(all_observations()), {"snapshot": snapshot})
+    rows: list[dict] = []
+    on_file = 0
     for f in fixings.values():
         if store.latest(f.index_code, day) is not None and not reason:
             on_file += 1
             continue
         store.record(f, run_id=run_id, revision_reason=reason)
-        written += 1
-    return written, on_file
+        rows.append(tape_row(store.latest(f.index_code, day), snapshot))
+    return rows, on_file
 
 
 @app.command()
@@ -342,7 +354,7 @@ def collect(
 
     from .collect import collect as fetch
     from .collect import venue_breakdown
-    from .sources import write_snapshot
+    from .sources import SnapshotExists, write_snapshot
 
     now = datetime.now(UTC)
     with console.status("reading sellers..."):
@@ -354,11 +366,19 @@ def collect(
         console.print("[yellow]nothing collected; no snapshot written[/]")
         raise typer.Exit(1)
 
-    path = write_snapshot(
-        observations, now,
-        venues=[v.__dict__ for v in venues],
-        directory=Path(out) if out else None,
-    )
+    try:
+        path = write_snapshot(
+            observations, now,
+            venues=[v.__dict__ for v in venues],
+            directory=Path(out) if out else None,
+        )
+    except SnapshotExists as exc:
+        # Not a failure: the day is already on file and the rest of the daily
+        # run -- rebuild, publish, verify -- is idempotent against it. Exit
+        # cleanly so a re-dispatched run proceeds rather than aborting.
+        console.print(f"[yellow]already collected today: {exc}[/]")
+        console.print("[dim]nothing written; the existing snapshot stands[/]")
+        raise typer.Exit(0) from None
 
     t = _table(title="[bold]collected[/]", title_justify="left")
     for col in ("venue", "sellers", "observations", "note"):
@@ -445,33 +465,100 @@ def sensitivity(index_date: str | None = typer.Option(None, "--date")) -> None:
 
 
 @app.command()
-def rebuild(db: Path | None = typer.Option(None, "--db")) -> None:
-    """Restore the store from the snapshots: every date's fixing, from its own file.
+def rebuild(
+    db: Path | None = typer.Option(None, "--db"),
+    tape: Path | None = typer.Option(None, "--tape"),
+) -> None:
+    """Reconstruct the store from the tape and the snapshots.
 
-    The store is derived state and is never committed. This is how a fresh
-    checkout, or the daily runner, gets its history back without a binary in
-    the repository: each collection date is re-run against its own snapshot
-    and written as that date's first revision, unless the date is already on
-    file. Corrections made after the fact are not in the snapshots and are not
-    reconstructed; that is what a committed tape would be for, and this
-    repository does not keep one yet.
+    The store is derived state and is never committed; this is how a fresh
+    checkout, or the daily runner, gets its history back. Values come from
+    the tape with their revision numbers intact -- nothing is recomputed. A
+    date that has a snapshot and no tape row is backfilled and marked as such.
     """
-    written = on_file = 0
+    from .reproduce import coverage
+    from .reproduce import rebuild as _rebuild
+
     with Store(db) as store:
-        for path in snapshot_paths():
-            observations, moment = read_snapshot(path)
-            day = moment.date()
-            fixings = run_all(day, None, observations)
-            pending = [f for f in fixings.values() if store.latest(f.index_code, day) is None]
-            on_file += len(fixings) - len(pending)
-            if not pending:
-                continue
-            run_id = store.start_run(moment, len(observations), {"snapshot": path.name})
-            for f in pending:
-                store.record(f, published_at=moment, run_id=run_id)
-                written += 1
-    console.print(f"[dim]rebuilt: {written} fixing(s) written, {on_file} already on file, "
-                  f"across {len(snapshot_paths())} snapshot(s).[/]")
+        restored, backfilled = _rebuild(store, tape)
+    stats = coverage(tape)
+    console.print(Panel(
+        f"restored    {restored} tape row(s)\n"
+        f"backfilled  {backfilled} row(s) for dates the tape had never seen\n"
+        f"tape        {stats['tape_rows']} row(s) across {stats['index_dates']} date(s), "
+        f"{stats['snapshots']} snapshot(s) on file",
+        title="rebuild", expand=False,
+    ))
+
+
+@app.command()
+def verify(tape: Path | None = typer.Option(None, "--tape")) -> None:
+    """Recompute every published value from its archived inputs and compare.
+
+    Exits non-zero on any mismatch, so CI fails when the series stops being
+    reproducible from its own archive.
+    """
+    from .reproduce import verify as _verify
+
+    report = _verify(tape)
+    console.print(Panel(
+        f"checked      {report.checked}\n"
+        f"reproduced   {report.matched}\n"
+        f"mismatched   {len(report.mismatches)}\n"
+        f"unverifiable {len(report.unverifiable)}\n"
+        f"dangling     {len(report.dangling)}",
+        title="verify", expand=False,
+    ))
+    for note in report.dangling:
+        console.print(f"  [bold red]dangling[/] {note}")
+    for note in report.methodology_drift:
+        console.print(f"  [yellow]methodology[/] {note}")
+    for item in report.unverifiable:
+        console.print(f"  [dim]unverifiable[/] {item.index_code} {item.index_date}: {item.detail}")
+    for item in report.mismatches:
+        pub = f"{item.published:.4f}" if item.published is not None else "--"
+        rec = f"{item.recomputed:.4f}" if item.recomputed is not None else "--"
+        console.print(f"  [bold red]mismatch[/] {item.index_code} {item.index_date}: "
+                      f"published {pub}, recomputed {rec} ({item.detail})")
+    if not report.ok:
+        raise typer.Exit(1)
+    console.print("[green]series reproduces from its archive[/]")
+
+
+@app.command()
+def show(
+    index_code: str = typer.Argument(...),
+    db: Path | None = typer.Option(None, "--db"),
+    limit: int = typer.Option(20, "--limit"),
+) -> None:
+    """Print the current view of one series from the store."""
+    if index_code not in CONTRACTS:
+        console.print(f"\n[yellow]no contract {index_code!r}[/]")
+        console.print(f"[dim]try one of: {', '.join(CONTRACTS)}[/]\n")
+        raise typer.Exit(2)
+    with Store(db) as store:
+        rows = store.history(index_code, limit)
+    if not rows:
+        console.print(f"[yellow]no values for {index_code} on the tape; run rebuild[/]")
+        raise typer.Exit(1)
+    contract = CONTRACTS[index_code]
+    t = _table(title=f"[bold]{index_code}[/]  ·  {contract.display_name}", title_justify="left")
+    for col in ("date", "value", "rev", "prov", "obs", "disp", "status"):
+        t.add_column(col, justify="right" if col != "status" else "left", no_wrap=True)
+    for row in rows:
+        published = row["status"] == "published"
+        t.add_row(
+            row["index_date"],
+            f"[bold cyan]{row['value']:.3f}[/]" if published else "[dim]--[/]",
+            str(row["revision"]),
+            str(row["provider_count"]),
+            str(row["observation_count"]),
+            f"{row['dispersion']:.3f}" if row["dispersion"] is not None else "[dim]--[/]",
+            "[green]published[/]" if published else "[yellow]withheld[/]",
+        )
+    console.print()
+    console.print(t)
+    console.print()
 
 
 @app.command("as-of")
