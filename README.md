@@ -202,6 +202,100 @@ observation count, and dispersion. Every gate must hold.
 print. A gap in a series is a fact about the market; an interpolated value is a
 fiction about it.
 
+## How the code is arranged
+
+No class diagram: there is almost no inheritance to draw. The types are frozen
+dataclasses and enums and the logic is functions over them, so what a reader
+needs is the **layering** — which module may import which, and where the two
+impure edges are.
+
+It is deliberately the same architecture as the
+[compute benchmark](https://github.com/henryzhangpku/gpu-price-index): one
+module that reaches the network, one that opens the database, and pure
+functions in between.
+
+```mermaid
+flowchart TB
+    subgraph IO["touches the world"]
+        COLLECT["collect.py · the only network calls<br/>one dated snapshot per run"]
+        STORE["store.py · the only database<br/>archive.py reads it"]
+    end
+    subgraph PURE["pure: same inputs, same answer, no clock and no socket"]
+        SPEC["spec.py · the RULES as data<br/>contracts · serving + context factors · Gates"]
+        MODELS["models.py · the vocabulary<br/>Observation · Quote · Rejection · ProviderPoint · Fixing"]
+        SOURCES["sources.py · read a snapshot; never mix two days"]
+        NORM["normalize.py · restate onto the benchmark good, or reject"]
+        EST["estimator.py · one vote per seller, screen, weight, gate"]
+        SENS["sensitivity.py · how much rests on judgement"]
+        QUAL["quality.py · staleness, seller dropout, level shifts"]
+    end
+    subgraph ORCH["orchestration"]
+        PIPE["pipeline.py · one fixing cycle from one snapshot"]
+        REPRO["reproduce.py · recompute every value from its own inputs"]
+        WEB["web.py · dump the archive as JSON"]
+        CLI["cli.py · every command below"]
+    end
+
+    SPEC --> MODELS --> NORM --> EST
+    MODELS --> SOURCES
+    MODELS --> QUAL
+    EST --> SENS
+    COLLECT --> SOURCES --> PIPE
+    NORM --> PIPE
+    EST --> PIPE
+    STORE --> REPRO
+    PIPE --> REPRO
+    PIPE --> WEB
+    SENS --> WEB
+    PIPE --> CLI
+    REPRO --> CLI
+    STORE --> CLI
+```
+
+**Collection and estimation are separate processes, and that is the whole
+point.** `tokidx collect` reaches the network once and writes a dated
+snapshot; everything downstream reads that file and reaches nowhere. So a
+published value can always be shown to follow from its own inputs, and
+`sources.py` reads exactly one file on purpose — a fixing must never mix two
+days' prices.
+
+### The same journey in types
+
+```mermaid
+flowchart LR
+    OB["Observation<br/><i>what a seller listed</i>"]
+    SNAP[("dated snapshot<br/><i>written before anything is computed</i>")]
+    QU["Quote<br/><i>restated onto the benchmark good</i>"]
+    RJ["Rejection<br/><i>and why it did not count</i>"]
+    PP["ProviderPoint<br/><i>one vote per seller,<br/>weight + screen verdict</i>"]
+    FX["Fixing<br/><i>value, every GateResult, every Flag</i>"]
+    TAPE[("append-only tape<br/><i>revision + as-of</i>")]
+
+    OB --> SNAP
+    SNAP -->|normalize| QU
+    SNAP -.->|normalize| RJ
+    QU -->|estimator| PP
+    PP --> FX
+    FX --> TAPE
+```
+
+| module | owns | may import |
+|---|---|---|
+| `spec.py` | the rules **as data** — contracts, serving and context factors, `Gates` | nothing |
+| `models.py` | the vocabulary: every record type | spec |
+| `collect.py` | **the only network I/O**; writes a dated snapshot and stops | models, spec |
+| `sources.py` | reading snapshots — one file per fixing, never two | models, spec |
+| `normalize.py` | restating an observation, or rejecting it with a reason | models, spec |
+| `estimator.py` | seller medians, the screen, weights, gate evaluation | models, spec |
+| `sensitivity.py` | how much of a value came from the adjustment schedule | models, spec, estimator |
+| `quality.py` | staleness, seller dropout, level shifts | models |
+| `store.py` | **the only database**, bitemporal and append-only | models, spec |
+| `archive.py` | the tape as committed files | sources |
+| `pipeline.py` | one fixing cycle from one snapshot | estimator, models, normalize, sources, spec |
+| `reproduce.py` | recomputing published values and reporting mismatches | archive, pipeline, sources, spec, store |
+| `web.py` | the archive as JSON for the demo site | normalize, pipeline, sensitivity, sources, spec |
+| `cli.py` | the commands below, and nothing else | the orchestration layer |
+
 ## Commands
 
 ```bash
@@ -281,22 +375,16 @@ and why the venue count is printed next to the seller count.
 ## Layout
 
 ```
-src/tokidx/
-  spec.py         contracts, tiers, factors, gates        <- the methodology
-  models.py       record types; raw observation -> quote -> fixing
-  collect.py      the live source, and the venue caveat
-  sources.py      dated snapshots on disk; collection is not estimation
-  archive.py      the tape: append-only publication record, names its snapshot
-  reproduce.py    rebuild the store from the tape; verify the tape from the snapshots
-  normalize.py    restate onto the contract, or reject with a reason
-  estimator.py    seller medians -> screen -> weights -> value, or refuse
-  quality.py      staleness, dropout, level shifts; not_evaluable is an answer
-  sensitivity.py  how much of a fixing is the schedule rather than the market
-  store.py        bitemporal, append-only; the as-of query and its index
-  pipeline.py     collect, restate, estimate, gate -- one path
-  web.py          the bundle the site reads
-  cli.py          what a benchmark administrator actually does
+src/tokidx/     the package — see "How the code is arranged" above for the
+                layering, the type chain and what each module owns
+web/            the static demo site; reads the export, computes nothing
+docs/           METHODOLOGY.md, FINDINGS.md
+data/           dated snapshots: what was read, before anything was computed
+tests/          the suite, including property tests over generated markets
 ```
+
+`spec.py` holds every number a dispute would be argued over, in one file, on
+purpose.
 
 ## What came out of building it
 
