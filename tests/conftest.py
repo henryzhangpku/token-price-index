@@ -13,6 +13,19 @@ from tokidx.spec import CONTRACTS, Direction, Serving, Tier
 CODE = "TIX-GLM53-OUT"
 
 
+@pytest.fixture(autouse=True)
+def _isolated_store(tmp_path, monkeypatch):
+    """No test may write to the working store.
+
+    ``publish`` records to the tape now, and a test that ran it against the
+    real data/tokidx.db would leave a revision behind that the next real
+    publish then refuses to overwrite without a reason.
+    """
+    import tokidx.store
+
+    monkeypatch.setattr(tokidx.store, "DEFAULT_DB", tmp_path / "isolated.db")
+
+
 @pytest.fixture
 def day() -> date:
     return date(2026, 9, 8)

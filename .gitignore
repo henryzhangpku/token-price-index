@@ -9,3 +9,8 @@ scripts/.fonts/
 # copy is only ever a second version of the truth waiting to fall out of date --
 # which is exactly what docs/FINDINGS.md #5 records happening.
 web/data/
+
+# The working store. Derived from the snapshots by `tokidx rebuild` and
+# appended to by `tokidx publish`; never committed, for the same reason the
+# site bundle is not: a committed copy is a second truth waiting to diverge.
+data/tokidx.db

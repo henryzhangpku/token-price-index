@@ -32,31 +32,40 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v10.0.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
 
-      - name: install
+      - name: Install project
         run: uv sync --frozen
 
-      - name: lint
+      - name: Lint
         run: uvx ruff check src tests
 
-      - name: test
+      - name: Run tests
+        # A methodology change that breaks its own tests must not reach the
+        # tape. The gates protect against bad data; this protects against bad code.
         run: uv run pytest -q
 
-      - name: collect
+      - name: Collect today's observations
         run: uv run tokidx collect
 
-      - name: publish the fixing
+      - name: Rebuild working state from the archive
+        # The store is derived and never committed. Restoring every prior
+        # fixing from the snapshots gives the level-shift and dropout checks
+        # the history they need, and makes as-of answerable on this runner.
+        run: uv run tokidx rebuild
+
+      - name: Publish today's fixing
         run: uv run tokidx publish
 
-      - name: rebuild the site bundle
+      - name: Rebuild the site bundle
         run: uv run tokidx export-web --out web/data
 
-      - name: commit the tape
+      - name: Commit the durable record
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -71,7 +80,7 @@ jobs:
           git commit -m "fixing $(date -u +%Y-%m-%d)"
           git push
 
-      - name: summary
+      - name: Summarise
         if: always()
         run: |
           {

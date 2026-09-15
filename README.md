@@ -206,6 +206,9 @@ uv run tokidx explain TIX-GLM53-OUT       # one fixing, from published prices to
 uv run tokidx contracts                   # the goods, the weights, the gates
 uv run tokidx calibrate                   # test the serving factors against what sellers charge
 uv run tokidx sensitivity                 # how much of each fixing the factors are responsible for
+uv run tokidx rebuild                     # restore the store from the snapshots, one revision per date
+uv run tokidx as-of TIX-K3-OUT 2026-09-14 2026-09-15T00:00Z   # what did we say, as known when
+uv run tokidx revisions TIX-K3-OUT 2026-09-14                 # every revision, superseded ones included
 uv run tokidx export-web --out web/data   # the JSON the static site reads
 ```
 
@@ -238,8 +241,12 @@ Everything else is derived from those files and deliberately not committed.
 rebuilt at deploy time, because a committed copy is only ever a second version
 of the truth waiting to fall out of date.
 
-The SQLite store is derived and gitignored too. It is bitemporal and append-only: a
-correction writes a new revision, stamps the old one, and must carry a reason.
+The SQLite store is derived and gitignored too. `tokidx rebuild` restores it
+from the snapshots -- each date re-run against its own file and written as that
+date's first revision -- and `tokidx publish` appends to it. It is bitemporal
+and append-only: a correction writes a new revision, stamps the old one, and
+must carry a reason, which is why a bare re-run of `publish` leaves the tape
+alone and `publish --reason` is how a restatement is made.
 `as_of(index_date, knowledge_time)` answers what the tape said for a date *as
 known at a moment*, which is the only question a settlement dispute can use.
 
@@ -266,6 +273,7 @@ src/tokidx/
   normalize.py    restate onto the contract, or reject with a reason
   estimator.py    seller medians -> screen -> weights -> value, or refuse
   quality.py      staleness, dropout, level shifts; not_evaluable is an answer
+  sensitivity.py  how much of a fixing is the schedule rather than the market
   store.py        bitemporal, append-only; the as-of query and its index
   pipeline.py     collect, restate, estimate, gate -- one path
   web.py          the bundle the site reads
