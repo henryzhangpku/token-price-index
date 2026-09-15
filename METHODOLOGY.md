@@ -94,8 +94,19 @@ talking, and it is discarded. Batch at 2x survives, because half the number is
 still the seller's.
 
 An earlier draft set the ceiling at 10.5x, which no combination of factors
-could reach — serving is a single enum and the context factor only reduces. A
-ceiling nothing can touch is not a control. A test caught it.
+could reach — serving is a single enum, and the context factor that then
+existed only reduced. A ceiling nothing can touch is not a control. A test
+caught it.
+
+**Context is a fitness test, not a factor.** The window a seller quotes is
+what its single flat rate covers, not a premium tier: a 128k request is served
+at that rate, so a window that reaches the contract's is the benchmark good and
+nothing is restated. A window that falls short cannot serve the request at
+all, which is a different good rather than a cheaper one, and is discarded as
+`context_too_short`. An earlier draft multiplied every quote by 0.80 or 0.65
+by window size, on the theory that it was removing a long-context premium; no
+observation carried one, and every published value came out a third below
+what any seller charged. The sensitivity measure found it — see FINDINGS.
 
 **Two of these four factors are unusually well grounded**, and it is worth
 being precise about why. Anthropic publishes batch at 50% and cache reads at
@@ -103,7 +114,7 @@ about a tenth of standard input. OpenAI publishes the same two ratios. **A
 ratio published identically by two independent sellers is a market convention;
 a ratio applied identically across every SKU of a single seller is that
 seller's discount policy and carries no information.** That distinction is what
-makes the batch and cache factors defensible and leaves the context factor as
+makes the batch and cache factors defensible and leaves the priority factor as
 judgement.
 
 `tokidx calibrate` prints the check: where one seller publishes the same good

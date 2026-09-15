@@ -11,6 +11,11 @@ observations across 37 sellers, one venue. Reproduce any of it with
 
 ## 1. The dispersion gate read perfect agreement on a market spanning six times
 
+> The figures in this section were measured under a context factor that has
+> since been removed (finding #7). In the raw data the modal price is $0.50,
+> held by seventeen of twenty-seven sellers rather than fifteen. The shape of
+> the finding — a majority at one number, so MAD is zero — is unchanged.
+
 The gate exists to refuse publication when sellers disagree too much to be
 represented by one number. On the first live collection it reported **0.000** on
 `TIX-GLM53-OUT`, where the cheapest seller charged $0.163 and the dearest
@@ -159,6 +164,46 @@ range, so the correct tolerance is one published unit, not an epsilon.
 A property test that passes on a retry has not passed.
 
 ---
+
+## 7. The context factor was restating a window as a premium
+
+Every observation carries `context_tokens`. The collector fills it from the
+source's `context_length` — the size of the window a seller's rate covers.
+Of 110 observations on 14 September, 82 say 1,048,576 and none say 128,000.
+Every one of them is `standard` serving at a single flat price.
+
+The restatement step read that field as a long-context *tier* — a premium
+rate above a base rate — and applied 0.80 for windows up to four times the
+contract's and 0.65 beyond. There was no premium to remove. A seller quoting
+one rate for a million-token window serves a 128k request at that rate; that
+rate *is* the price of the benchmark good.
+
+The effect was uniform and invisible from inside the pipeline. The sellers
+were consistent, the gates held, the tests passed, and the site printed
+$0.325 for GLM 5.3 output while seventeen of twenty-seven sellers charged
+$0.50. Kimi K3 printed 9.32 against a market at 14.34. DeepSeek V4.1 printed
+0.82 against 1.19 — and read a dispersion of 0.184 where the market's is
+0.033, because sellers quoting identical prices at different window sizes
+were being multiplied by different factors and spread apart.
+
+It was found the day the sensitivity measure was ported from the compute
+benchmark. Its first run reported **0 of 27 quotes conforming** and **100% of
+every fixing's weight resting on the context factor**. The measure exists to
+answer "how much of this number is the schedule rather than the market"; the
+answer was *all of it*, and that was the finding.
+
+Context is a fitness test now, not a factor. A window that reaches the
+contract's is the benchmark good and nothing is restated. A window that falls
+short cannot serve the request, which is a different good rather than a
+cheaper one, and is discarded as `context_too_short`. The serving factors are
+untouched; on this source they never fire either, so the published values are
+what sellers publish.
+
+Finding #1's figures were measured under the removed factor: its "fifteen of
+twenty-seven at $0.325" is seventeen of twenty-seven at $0.50 in the raw
+data, and the shape of that finding — a majority at one number, MAD zero —
+is unchanged by the correction. If anything it is sharper: two sellers the
+factor had pushed off the mode are back on it.
 
 ## Reproducing
 

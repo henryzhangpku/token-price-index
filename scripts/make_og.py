@@ -38,12 +38,12 @@ URL = "henryzhangpku.github.io/token-price-index"
 STATS = [
     ("6", "contracts", INK),
     ("37", "sellers", INK),
-    ("15/27", "at one price", INK),
+    ("17/27", "at one price", INK),
     ("2", "refused", WARN),
 ]
 
 #: The mark: two seller quotes at an identical height plus one stray, which is the
-#: finding -- fifteen of twenty-seven sellers quote the same price.  Its sibling in
+#: finding -- seventeen of twenty-seven sellers quote the same price.  Its sibling in
 #: gpu-index spreads all three, because no two GPU providers quote alike.  (x, y, w, h)
 #: on a 32-unit grid, matching favicon.svg.
 MARK_BARS = [(6, 12, 5, 14), (13.5, 12, 5, 14), (21, 7, 5, 19)]

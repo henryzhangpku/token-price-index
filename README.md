@@ -47,16 +47,16 @@ not months; nothing here has seen enough daily moves to fit a threshold to.
 ```
 daily fixing
 +-----------------------------------------------------------------------------+
-|index            | value | prov | obs |  disp | status    | why              |
-|-----------------+-------+------+-----+-------+-----------+------------------|
-|TIX-GLM53-OUT    | 0.331 |   27 |  27 | 0.340 | published |                  |
-|TIX-GLM53-IN     | 0.099 |   27 |  27 | 0.360 | published |                  |
-|TIX-K3-OUT       | 9.403 |   16 |  19 | 0.175 | published |                  |
-|TIX-DSV41-OUT    | 0.701 |   12 |  12 | 0.495 | published |                  |
-|TIX-MM3-OUT      |    -- |   12 |  12 | 0.920 | withheld  | dispersion       |
-|TIX-FRONTIER-OUT |    -- |    2 |   5 |    -- | withheld  | indexable good,  |
-|                 |       |      |     |       |           | min providers,   |
-|                 |       |      |     |       |           | dispersion       |
+|index            |  value | prov | obs |  disp | status    | why             |
+|-----------------+--------+------+-----+-------+-----------+-----------------|
+|TIX-GLM53-OUT    |  0.498 |   27 |  27 | 0.340 | published |                 |
+|TIX-GLM53-IN     |  0.149 |   27 |  27 | 0.360 | published |                 |
+|TIX-K3-OUT       | 14.336 |   17 |  20 | 0.170 | published |                 |
+|TIX-DSV41-OUT    |  1.191 |   11 |  11 | 0.033 | published |                 |
+|TIX-MM3-OUT      |     -- |   13 |  13 | 1.000 | withheld  | dispersion      |
+|TIX-FRONTIER-OUT |     -- |    2 |   5 |    -- | withheld  | indexable good, |
+|                 |        |      |     |       |           | min providers,  |
+|                 |        |      |     |       |           | dispersion      |
 +-----------------------------------------------------------------------------+
   USD per million tokens. 2 of 6 indices decline to print,
   and 1 of those cannot print by construction rather than for want of data.
@@ -78,13 +78,13 @@ independent sellers competing on price, and the spread is real:
 
 | Kimi K3, output | price per Mtok |
 |---|---|
-| DeepInfra | $9.263 |
-| Together | $9.750 |
-| Fireworks | $10.725 |
+| DeepInfra | $14.25 |
+| Together | $15.00 |
+| Fireworks | $16.50 |
 
-Identical weights, three sellers, a 16% spread — and across all sixteen sellers
-that survive the screen the spread is 1.5×. That is a market, and an index over
-it measures something.
+Identical weights, three sellers, a 16% spread — and across all seventeen
+sellers that survive the screen the spread is 1.3×. That is a market, and an
+index over it measures something.
 
 So `TIX-FRONTIER-OUT` is included **specifically to be refused.** The gate that
 stops it is `indexable_good`, and it fails before any question of data
@@ -144,8 +144,8 @@ flowchart TB
     WH --> TAPE
 ```
 
-The concentration branch is not decoration. On the first live collection, 15 of
-27 sellers of the same weights quoted an identical price, which is why
+The concentration branch is not decoration. On the first live collection, 17 of
+27 sellers of the same weights quoted an identical $0.50, which is why
 dispersion is measured at the ninetieth percentile of deviation rather than the
 median: with a majority at one number, MAD is zero on a market spanning six
 times. See METHODOLOGY section 5.
@@ -205,6 +205,7 @@ uv run tokidx publish                     # the board: what printed, what refuse
 uv run tokidx explain TIX-GLM53-OUT       # one fixing, from published prices to the decision
 uv run tokidx contracts                   # the goods, the weights, the gates
 uv run tokidx calibrate                   # test the serving factors against what sellers charge
+uv run tokidx sensitivity                 # how much of each fixing the factors are responsible for
 uv run tokidx export-web --out web/data   # the JSON the static site reads
 ```
 
@@ -278,7 +279,7 @@ The long form, with the numbers and the workings, is
 
 
 **The dispersion gate read perfect agreement on a market spanning six times.**
-Fifteen of twenty-seven sellers of the same weights quote an identical price, so
+Seventeen of twenty-seven sellers of the same weights quote an identical $0.50, so
 the median *is* that price, more than half the deviations from it are exactly
 zero, and MAD is zero. Qn fails identically — with a majority at one number,
 over a quarter of all pairwise differences are zero. Any statistic asking what a
@@ -300,10 +301,22 @@ thirty-seven sellers, one source. Once through prices — a majority quoting one
 number are not independent opinions. Both are measured and printed rather than
 left for a reader to work out.
 
+**The context factor was restating a window as a premium, and every published
+value was a third too low.** `context_tokens` is the window a seller's one
+flat rate covers — 82 of 110 observations say 1,048,576 — not a long-context
+tier priced above a base rate. The factor multiplied every quote by 0.80 or
+0.65 anyway. Sellers charge $0.50 for GLM 5.3; the site printed $0.325. It
+also spread apart sellers quoting the same price at different window sizes,
+manufacturing dispersion: DeepSeek V4.1 read 0.184 and reads 0.033 now. Found
+the day the sensitivity measure was ported from the compute benchmark, which
+reported 0 of 27 quotes conforming and 100% of every fixing resting on that one
+factor. Context is a fitness test now — a window short of the contract is a
+different good — and nothing is restated. See FINDINGS #7.
+
 **A ceiling nothing could reach is not a control.** The cumulative adjustment cap
 was 10.5×, which no combination of factors could touch: serving is a single enum
-and the context factor only reduces. A test caught it. It is 5.0× now, which
-binds on the cache factor.
+and the context factor that then existed only reduced. A test caught it. It is
+5.0× now, which binds on the cache factor.
 
 **A fixing belongs to its inputs, not to the clock.** The index date came from
 `date.today()`, so re-running an unchanged observation set on a later day

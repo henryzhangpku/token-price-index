@@ -353,6 +353,61 @@ function seriesPanel(idx, data) {
   </div>`;
 }
 
+/* ---------- dependence on the schedule ---------------------------------- */
+
+/* Section 4 of the methodology concedes its factors are judgement. This is the
+ * figure that concession leaves a reader wanting: how far the fixing actually
+ * moves because of them. Same panel as the compute benchmark's, deliberately.
+ */
+function exposurePanel(idx) {
+  const e = idx.exposure;
+  if (!e || !e.total_quotes) return "";
+  const pct = (v) => v === null || v === undefined ? "--" : `${(100 * v).toFixed(0)}%`;
+  const signed = (v) => v === null || v === undefined ? "--" : `${v >= 0 ? "+" : ""}${(100 * v).toFixed(1)}%`;
+
+  let counterfactual;
+  if (e.published === null) {
+    counterfactual = `<p class="chart-note">This index did not publish, so there is no
+      value to measure dependence on.</p>`;
+  } else if (e.conforming_only === null) {
+    counterfactual = `<p class="chart-note"><strong>The schedule is load-bearing.</strong>
+      Only ${e.conforming_providers} seller${e.conforming_providers === 1 ? "" : "s"} publish
+      the benchmark configuration natively, so a fixing from conforming quotes alone would not
+      clear the gates. There is no counterfactual to compare against, and that is a fact about
+      this index worth stating rather than an error.</p>`;
+  } else {
+    counterfactual = `<p class="chart-note">Recomputed from natively conforming quotes alone:
+      <strong>$${fmt(e.conforming_only)}</strong>, a shift of <strong>${signed(e.shift)}</strong>.
+      The restatement is making differently-served supply comparable rather than manufacturing
+      the answer.</p>`;
+  }
+
+  const factors = Object.entries(e.by_factor || {});
+  return `<div class="panel">
+    <header>
+      <h2>Dependence on the restatement schedule</h2>
+      <span class="note">${e.conforming_quotes}/${e.total_quotes} quotes conformed as observed</span>
+    </header>
+    <div class="body">
+      ${counterfactual}
+      <div class="stat-row" style="margin-top:18px">
+        <div class="stat"><div class="k">restated weight</div>
+          <div class="v">${pct(e.weight_share_adjusted)}</div>
+          <div class="n">of contributing weight</div></div>
+        <div class="stat"><div class="k">conforming</div>
+          <div class="v">${e.conforming_quotes}/${e.total_quotes}</div>
+          <div class="n">quotes needing no restatement</div></div>
+        <div class="stat"><div class="k">publishable without</div>
+          <div class="v">${e.publishable_without_adjustment ? "yes" : "no"}</div>
+          <div class="n">would clear gates on conforming quotes alone</div></div>
+      </div>
+      ${factors.length ? `<p class="chart-note" style="margin-top:18px">share of quotes touched</p>
+        <div class="adjlist">${factors.map(([k, v]) =>
+          `<div><b>${escapeHtml(k)}</b> — ${pct(v)}</div>`).join("")}</div>` : ""}
+    </div>
+  </div>`;
+}
+
 /* ---------- detail panels ----------------------------------------------- */
 
 function gatesPanel(idx) {
@@ -432,7 +487,7 @@ function renderDetail() {
   if (!host || !DATA) return;
   const idx = DATA.indices.find((i) => i.code === CURRENT) || DATA.indices[0];
   host.innerHTML = seriesPanel(idx, DATA) + chartPanel(idx) + gatesPanel(idx)
-    + contributionsPanel(idx) + contractPanel(idx, DATA);
+    + exposurePanel(idx) + contributionsPanel(idx) + contractPanel(idx, DATA);
 }
 
 let redrawTimer = null;

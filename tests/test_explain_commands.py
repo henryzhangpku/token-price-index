@@ -93,6 +93,13 @@ def test_calibrate_runs():
     assert result.exit_code == 0, result.output
 
 
+def test_sensitivity_reports_every_contract():
+    result = _run("sensitivity")
+    assert result.exit_code == 0, result.output
+    for code in CONTRACTS:
+        assert code in result.output
+
+
 def test_export_web_writes_the_bundle(tmp_path):
     result = _run("export-web", "--out", str(tmp_path))
     assert result.exit_code == 0, result.output

@@ -10,21 +10,6 @@ from .models import Adjustment, Observation, Quote, Rejection
 from .spec import CONTRACTS, MAX_TOTAL_ADJUSTMENT, SERVING_FACTORS, Contract, Serving
 
 
-def _context_factor(observed: int, benchmark: int) -> tuple[float, str] | None:
-    """Long-context tiers are priced up; short ones are not priced down.
-
-    Sellers publish a premium above a context threshold and a single rate
-    below it, so this is a step rather than a curve. Deliberately flat: the
-    data is far too thin to support a fitted shape and pretending otherwise
-    would be inventing precision.
-    """
-    if observed <= benchmark:
-        return None
-    if observed <= 4 * benchmark:
-        return 0.80, f"{observed:,}-token context restated to {benchmark:,}"
-    return 0.65, f"{observed:,}-token context restated to {benchmark:,}"
-
-
 def normalize(obs: Observation, contract: Contract) -> Quote | Rejection:
     """Express one observation as the contract, or explain the discard."""
     if obs.model != contract.model:
@@ -40,6 +25,28 @@ def normalize(obs: Observation, contract: Contract) -> Quote | Rejection:
         return Rejection(obs.provider, "non_positive_price",
                          f"published {obs.usd_per_mtok}")
 
+    # Context is a fitness test, not a factor. ``context_tokens`` is the
+    # window a seller's single flat rate covers, not a premium tier, so a rate
+    # whose window reaches the benchmark's is the price of the benchmark good
+    # -- a 128k request is served at it. A window that falls short cannot
+    # serve the request at all, which is a different good rather than a
+    # cheaper one.
+    #
+    # An earlier draft multiplied every quote by 0.80 or 0.65 according to
+    # window size, on the theory that it was removing a long-context premium.
+    # No observation carried one: every seller in the live source publishes
+    # one rate for the whole window. The sensitivity measure showed 0 of 27
+    # quotes conforming and every fixing resting entirely on that factor --
+    # published values were a third below what any seller charged, and sellers
+    # quoting the same price at different window sizes were being spread apart
+    # into dispersion that did not exist. See FINDINGS.md.
+    if obs.context_tokens < contract.context_tokens:
+        return Rejection(
+            obs.provider, "context_too_short",
+            f"{obs.context_tokens:,}-token window cannot serve a "
+            f"{contract.context_tokens:,}-token request",
+        )
+
     adjustments: list[Adjustment] = []
     price = obs.usd_per_mtok
 
@@ -49,12 +56,6 @@ def normalize(obs: Observation, contract: Contract) -> Quote | Rejection:
             "serving", factor,
             f"{obs.serving.value} restated to {contract.serving.value}",
         ))
-        price *= factor
-
-    ctx = _context_factor(obs.context_tokens, contract.context_tokens)
-    if ctx is not None:
-        factor, reason = ctx
-        adjustments.append(Adjustment("context", factor, reason))
         price *= factor
 
     total = price / obs.usd_per_mtok
