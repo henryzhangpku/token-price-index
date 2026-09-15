@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import statistics
-from datetime import date
+from datetime import UTC, date, datetime
+from pathlib import Path
 
 import typer
 from rich import box
@@ -11,9 +12,10 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from .models import Fixing
 from .normalize import serving_check
 from .pipeline import default_index_date, run, run_all
-from .sources import all_observations, collected_at
+from .sources import all_observations, collected_at, latest_snapshot, read_snapshot, snapshot_paths
 from .spec import (
     CONTRACTS,
     DEFAULT_GATES,
@@ -23,6 +25,7 @@ from .spec import (
     SERVING_FACTORS,
     TIER_WEIGHTS,
 )
+from .store import Store
 
 app = typer.Typer(add_completion=False, help="Token price benchmark reference implementation")
 console = Console()
@@ -33,10 +36,18 @@ def _table(**kwargs) -> Table:
 
 
 @app.command()
-def publish(index_date: str | None = typer.Option(None, "--date")) -> None:
-    """Run every index and print the board."""
+def publish(
+    index_date: str | None = typer.Option(None, "--date"),
+    reason: str | None = typer.Option(
+        None, "--reason", help="Why an existing fixing is being restated"
+    ),
+    db: Path | None = typer.Option(None, "--db", help="Store path; default is the working store"),
+) -> None:
+    """Run every index, print the board, and write the fixings to the tape."""
     day = date.fromisoformat(index_date) if index_date else default_index_date()
     fixings = run_all(day)
+    with Store(db) as store:
+        written, on_file = _record_all(store, fixings, day, reason)
 
     console.print(Panel(
         f"[bold]{day}[/]  ·  prices read {collected_at():%Y-%m-%d}  ·  "
@@ -78,7 +89,36 @@ def publish(index_date: str | None = typer.Option(None, "--date")) -> None:
         f"  [dim]and {len(by_construction)} of those cannot print by construction "
         "rather than for want of data.[/]"
     )
+    if written:
+        console.print(f"  [dim]tape: {written} fixing(s) recorded for {day}"
+                      f"{' as a restatement' if reason else ''}.[/]")
+    if on_file:
+        console.print(f"  [dim]tape: {on_file} fixing(s) for {day} already on file; "
+                      "pass --reason to restate them.[/]")
     console.print()
+
+
+def _record_all(
+    store: Store, fixings: dict[str, Fixing], day: date, reason: str | None
+) -> tuple[int, int]:
+    """Write each fixing to the tape as a new revision, or leave it alone.
+
+    The first write for a date needs no reason. A second write of the same
+    date is a restatement and must say why, so a bare re-run of ``publish``
+    leaves the tape untouched rather than manufacturing revisions -- the
+    store enforces that, and this decides before asking it to.
+    """
+    run_id = store.start_run(
+        collected_at(), len(all_observations()), {"snapshot": latest_snapshot().name},
+    )
+    written = on_file = 0
+    for f in fixings.values():
+        if store.latest(f.index_code, day) is not None and not reason:
+            on_file += 1
+            continue
+        store.record(f, run_id=run_id, revision_reason=reason)
+        written += 1
+    return written, on_file
 
 
 @app.command()
@@ -402,3 +442,89 @@ def sensitivity(index_date: str | None = typer.Option(None, "--date")) -> None:
         for name, share in sorted(factors.items(), key=lambda kv: -kv[1]):
             console.print(f"    {name:10} {share:.0%}")
     console.print()
+
+
+@app.command()
+def rebuild(db: Path | None = typer.Option(None, "--db")) -> None:
+    """Restore the store from the snapshots: every date's fixing, from its own file.
+
+    The store is derived state and is never committed. This is how a fresh
+    checkout, or the daily runner, gets its history back without a binary in
+    the repository: each collection date is re-run against its own snapshot
+    and written as that date's first revision, unless the date is already on
+    file. Corrections made after the fact are not in the snapshots and are not
+    reconstructed; that is what a committed tape would be for, and this
+    repository does not keep one yet.
+    """
+    written = on_file = 0
+    with Store(db) as store:
+        for path in snapshot_paths():
+            observations, moment = read_snapshot(path)
+            day = moment.date()
+            fixings = run_all(day, None, observations)
+            pending = [f for f in fixings.values() if store.latest(f.index_code, day) is None]
+            on_file += len(fixings) - len(pending)
+            if not pending:
+                continue
+            run_id = store.start_run(moment, len(observations), {"snapshot": path.name})
+            for f in pending:
+                store.record(f, published_at=moment, run_id=run_id)
+                written += 1
+    console.print(f"[dim]rebuilt: {written} fixing(s) written, {on_file} already on file, "
+                  f"across {len(snapshot_paths())} snapshot(s).[/]")
+
+
+@app.command("as-of")
+def as_of(
+    index_code: str = typer.Argument(...),
+    index_date: str = typer.Argument(..., help="Index date (event time)"),
+    knowledge_time: str = typer.Argument(..., help="ISO timestamp (knowledge time)"),
+    db: Path | None = typer.Option(None, "--db"),
+) -> None:
+    """Answer: what did we say for this date, as known at that moment?"""
+    when = datetime.fromisoformat(knowledge_time)
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=UTC)
+    with Store(db) as store:
+        row = store.as_of(index_code, date.fromisoformat(index_date), when)
+    if row is None:
+        console.print(f"[yellow]{index_code} for {index_date} was not yet on the tape "
+                      f"as of {when.isoformat()}[/]")
+        raise typer.Exit(1)
+    value = f"{row['value']:.4f}" if row["value"] is not None else "--"
+    console.print(Panel(
+        f"value      {value}\n"
+        f"status     {row['status']}\n"
+        f"revision   {row['revision']}\n"
+        f"published  {row['published_at']}\n"
+        f"superseded {row['superseded_at'] or 'no -- this was still the live value'}",
+        title=f"{index_code} {index_date} as known at {when.isoformat()}",
+        expand=False,
+    ))
+
+
+@app.command()
+def revisions(
+    index_code: str = typer.Argument(...),
+    index_date: str = typer.Argument(...),
+    db: Path | None = typer.Option(None, "--db"),
+) -> None:
+    """List every revision of one value, including superseded ones."""
+    with Store(db) as store:
+        rows = store.revisions(index_code, date.fromisoformat(index_date))
+    if not rows:
+        console.print("[yellow]no revisions on the tape[/]")
+        raise typer.Exit(1)
+    t = _table()
+    for col in ("rev", "value", "status", "published_at", "superseded_at", "reason"):
+        t.add_column(col, no_wrap=col != "reason")
+    for row in rows:
+        t.add_row(
+            str(row["revision"]),
+            f"{row['value']:.4f}" if row["value"] is not None else "--",
+            row["status"],
+            row["published_at"],
+            row["superseded_at"] or "[green]live[/]",
+            row["revision_reason"] or "",
+        )
+    console.print(t)
