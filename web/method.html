@@ -89,9 +89,17 @@
         models do not, because each has exactly one.
       </p>
       <p>
-        This is a property of the good, not of the data, so it is checked before
-        anything is collected. <code>TIX-FRONTIER-OUT</code> is refused by a gate
-        rather than by a shortage of inputs.
+        This is a property of the good, not of the data: it is decided by the contract
+        and cannot be changed by collecting more prices. <code>TIX-FRONTIER-OUT</code>
+        is refused by a gate rather than by a shortage of inputs.
+      </p>
+      <p>
+        <strong>Its prices are still collected and kept.</strong> Every snapshot holds
+        what GPT-6 Astra costs, and the tape carries a withheld row for it on every
+        date, naming the gate that stopped it. Filtering it out at collection would be
+        the easier design and a worse one: the refusal could then only be asserted.
+        Keeping the inputs is what lets the dashboard <em>show</em> two sellers of one
+        company's model, and lets anyone re-run the decision against the same prices.
       </p>
     </div>
   </section>
@@ -269,6 +277,6 @@
 
 </div>
 
-<script type="module" src="app.js?v=1351acee"></script>
+<script type="module" src="app.js?v=3210062c"></script>
 </body>
 </html>

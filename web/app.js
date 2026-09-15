@@ -162,11 +162,18 @@ function chartPanel(idx) {
     return Math.max(most, n);
   }, 1);
 
-  const STACK = 168;                                   // room the column may use
+  // The panel is as tall as the column needs and no taller. A fixed height
+  // meant the plot area was sized for the deepest stack any index might have,
+  // so an index whose sellers barely stack drew a few dots along the bottom of
+  // a mostly empty box: 4px of headroom on GLM 5.3, 161px on the frontier
+  // index. The floor keeps a one-deep strip from collapsing into its own axis.
+  const STACK = 168;                                   // most a column may use
+  const FLOOR = 64;                                    // least a plot may be
   const step = Math.max(6, Math.min(13, STACK / tallest));
   const radius = Math.max(3, Math.min(5, step * 0.42));
-  const H = TOP + STACK + AXIS_GAP + LABEL_ROW;
-  const baseline = TOP + STACK;
+  const plot = Math.min(STACK, Math.max(FLOOR, tallest * step + radius * 2 + 4));
+  const H = TOP + plot + AXIS_GAP + LABEL_ROW;
+  const baseline = TOP + plot;
 
   const placed = [];
   const dots = sellers.map((p) => {
@@ -214,9 +221,9 @@ function chartPanel(idx) {
       </svg>
       <div class="legend">
         <span class="key dot-key">one seller</span>
-        ${idx.published ? '<span class="key line-key">published fixing</span>' : '<span class="key none-key">withheld</span>'}
+        ${idx.published ? '<span class="key line-key">published fixing</span>' : ""}
       </div>
-      <p class="chart-note">${note}</p>
+      <p class="chart-note">${idx.published ? "" : "<strong>No fixing is drawn: this index withheld.</strong> "}${note}</p>
     </div>
   </div>`;
 }
@@ -344,9 +351,9 @@ function seriesPanel(idx, data) {
         ${strip}${xlabels}
       </svg>
       <div class="legend">
-        <span class="key line-key">published fixing</span>
+        ${segments.some((s) => s.length > 1) ? '<span class="key line-key">published fixing</span>' : ""}
         <span class="key dot-key">collection date</span>
-        <span class="key none-key">withheld — no value printed</span>
+        ${withheldCount ? '<span class="key none-key">withheld — no value printed</span>' : ""}
       </div>
       <p class="chart-note">${note}</p>
     </div>
