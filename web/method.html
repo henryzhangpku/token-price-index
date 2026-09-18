@@ -22,7 +22,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
-<link rel="stylesheet" href="style.css?v=204d779e">
+<link rel="stylesheet" href="style.css?v=flow0918">
 </head>
 <body>
 
@@ -230,6 +230,91 @@
         the other way round.
       </p>
     </div>
+  </section>
+
+  <section class="band">
+    <p class="kicker">end to end</p>
+    <h2>How a listing becomes a fixing</h2>
+    <div class="prose">
+      <p>
+        Every step that leaves the main line is a place an input is thrown away. Most of
+        the work in a benchmark is deciding what does not count, and every decision below
+        is recorded, so any published value can be recomputed from the snapshot it names.
+      </p>
+    </div>
+    <div class="flow">
+    <div class="stage">
+      <div class="n">01</div>
+      <h3>Admit the good</h3>
+      <ul>
+        <li class="drop"><b>Proprietary weights</b>: one seller, so no market to measure<span class="to">&rarr; refused by construction</span></li>
+        <li><b>Open weights</b>: 1 venue, 37 sellers, produce a raw observation</li>
+        <li>Written first to a <b>dated, immutable snapshot</b></li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="n">02</div>
+      <h3>Admit the quote</h3>
+      <ul>
+        <li class="drop">Matches <b>no contract</b><span class="to">&rarr; discarded, with a reason</span></li>
+        <li class="drop">Wrong <b>direction or region</b><span class="to">&rarr; discarded, with a reason</span></li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="n">03</div>
+      <h3>Restate</h3>
+      <ul>
+        <li>Restate to <b>standard serving</b>: batch 2.00, cached 10.00, priority 0.50</li>
+        <li class="drop">Over <b>5&times; cumulative</b> adjustment: the schedule would be talking, not the seller<span class="to">&rarr; discarded</span></li>
+        <li><b>Normalised quote</b></li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="n">04</div>
+      <h3>Aggregate</h3>
+      <ul>
+        <li>Collapse to <b>seller medians</b></li>
+        <li class="drop">Outside <b>3 robust sigma</b> of the panel<span class="to">&rarr; screened, and recorded</span></li>
+        <li><b>Tier weights</b>, any one seller capped at 50%</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="n">05</div>
+      <h3>Estimate</h3>
+      <ul>
+        <li><b>Weighted mean</b>, rounded to 4 dp</li>
+        <li class="hold">A <b>majority of sellers quoting one identical price</b>: a seller count overstates independence<span class="to">&rarr; flagged</span></li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="n">06</div>
+      <h3>Gate</h3>
+      <ul>
+        <li><b>Every gate holds</b><span class="to">&rarr; published</span></li>
+        <li class="hold"><b>Any gate fails</b><span class="to">&rarr; withheld, failing gate recorded</span></li>
+        <li>Both outcomes go to the <b>bitemporal store</b>, append-only: revision, as-of, snapshot</li>
+      </ul>
+    </div>
+    </div>
+    <div class="flow-legend">
+      <span>stays on the main line</span>
+      <span class="drop">thrown away, reason recorded</span>
+      <span class="hold">held or flagged, still on the record</span>
+    </div>
+    <div class="prose" style="margin-top:26px;">
+      <p>
+        The same journey in types. Each box is a frozen dataclass and each label under it
+        is the function that produces the next one.
+      </p>
+    </div>
+    <ol class="types">
+      <li><b>Observation</b><i>what a seller listed</i></li>
+      <li><b>dated snapshot</b><i>written before anything is computed</i><small>normalize</small></li>
+      <li><b>Quote</b><i>restated onto the benchmark good</i><small>estimator</small></li>
+      <li class="alt"><b>Rejection</b><i>and why it did not count</i></li>
+      <li><b>ProviderPoint</b><i>one vote per seller, weight + screen verdict</i></li>
+      <li><b>Fixing</b><i>value, every GateResult, every Flag; then the append-only tape</i></li>
+    </ol>
   </section>
 
   <section class="band" id="limits">
