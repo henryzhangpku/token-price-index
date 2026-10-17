@@ -83,12 +83,55 @@ def test_input_and_output_are_separate_goods() -> None:
     assert CONTRACTS["TIX-GLM53-OUT"].direction is not CONTRACTS["TIX-GLM53-IN"].direction
 
 
+def _panel(sellers: int, code: str = "TIX-GLM53-OUT"):
+    """An indexable good quoted by ``sellers`` sellers, three rows each.
+
+    Three rows per seller keeps the panel clear of the observation-count gate,
+    so the only thing that varies between a thin panel and a full one is the
+    number of sellers -- the thing under test.
+    """
+    from tokidx.estimator import estimate
+
+    quotes, rejections = normalize_all(
+        [_obs(f"seller{i}", CONTRACTS[code].model, (3.00 + 0.10 * i) * tilt)
+         for i in range(sellers) for tilt in (0.98, 1.00, 1.02)],
+        code,
+    )
+    return estimate(code, DAY, quotes, rejections, DEFAULT_GATES)
+
+
 def test_a_thin_panel_withholds_rather_than_printing() -> None:
-    thin = [f for f in run_all(DAY).values()
-            if not f.published
-            and any(g.name == "min_providers" and not g.passed for g in f.gates)]
-    assert thin, "the observation set should contain at least one thin index"
-    assert all(f.value is None for f in thin)
+    """One seller short of the floor withholds; reaching the floor prints.
+
+    Built on a fixture rather than the newest snapshot. The live market is not
+    obliged to contain a thin index: the one it used to contain gained a third
+    seller on 2026-09-23, and a test that needed the market to stay thin then
+    failed every day while the rule it was meant to pin was untouched.
+    """
+    thin = _panel(DEFAULT_GATES.min_providers - 1)
+    gate = next(g for g in thin.gates if g.name == "min_providers")
+    assert not gate.passed
+    assert next(g for g in thin.gates if g.name == "indexable_good").passed
+    assert next(g for g in thin.gates if g.name == "min_observations").passed
+    assert not thin.published
+    assert thin.value is None, "a thin panel must withhold, not print a number"
+
+    full = _panel(DEFAULT_GATES.min_providers)
+    assert next(g for g in full.gates if g.name == "min_providers").passed
+    assert full.published
+    assert full.value is not None
+
+
+def test_every_thin_index_in_the_newest_snapshot_is_withheld() -> None:
+    """The same rule against the real observation set, where it applies.
+
+    Vacuous on a day with no thin index, by design: whether the market is thin
+    is a fact about the market, not about the code.
+    """
+    for f in run_all(DAY).values():
+        if any(g.name == "min_providers" and not g.passed for g in f.gates):
+            assert not f.published
+            assert f.value is None
 
 
 def test_catalogue_size_buys_no_influence() -> None:
