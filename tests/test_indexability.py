@@ -17,7 +17,7 @@ import pytest
 from tokidx.estimator import collapse_to_providers, dispersion, screen
 from tokidx.models import Observation, ProviderPoint
 from tokidx.normalize import normalize_all
-from tokidx.pipeline import run, run_all
+from tokidx.pipeline import run_all
 from tokidx.spec import CONTRACTS, DEFAULT_GATES, Direction, Serving, Tier
 
 DAY = date(2026, 9, 8)
@@ -33,8 +33,18 @@ def _obs(provider: str, model: str, price: float, direction=Direction.OUTPUT,
 
 
 def test_a_single_seller_good_never_publishes() -> None:
-    """The headline claim. Frontier models have one seller each."""
-    f = run("TIX-FRONTIER-OUT", DAY)
+    """The headline claim. Frontier models have one seller each.
+
+    Built on a fixture: the live market has added sellers for this good
+    before (2026-09-23), and the claim is about the rule, not the market.
+    """
+    from tokidx.estimator import estimate
+
+    quotes, rejections = normalize_all(
+        [_obs("openai", "openai/gpt-6-astra", 20.0 * tilt) for tilt in (0.98, 1.00, 1.02)],
+        "TIX-FRONTIER-OUT",
+    )
+    f = estimate("TIX-FRONTIER-OUT", DAY, quotes, rejections, DEFAULT_GATES)
     assert not f.published
     gate = next(g for g in f.gates if g.name == "indexable_good")
     assert not gate.passed
@@ -63,27 +73,36 @@ def test_indexability_is_decided_before_data_sufficiency() -> None:
 
 
 def test_an_open_weight_good_with_three_sellers_publishes() -> None:
-    f = run("TIX-GLM53-OUT", DAY)
+    f = _panel(DEFAULT_GATES.min_providers)
     assert f.published
     assert len(f.contributing) >= DEFAULT_GATES.min_providers
     assert f.value is not None
 
 
 def test_the_published_value_sits_inside_the_observed_spread() -> None:
-    f = run("TIX-GLM53-OUT", DAY)
+    f = _panel(DEFAULT_GATES.min_providers + 2)
     prices = [p.price for p in f.contributing]
     assert min(prices) <= f.value <= max(prices)
 
 
+def test_every_published_index_in_the_newest_snapshot_sits_inside_its_spread() -> None:
+    """The same property against the real observation set, where it applies."""
+    for f in run_all(DAY).values():
+        if f.published:
+            prices = [p.price for p in f.contributing]
+            assert min(prices) <= f.value <= max(prices)
+
+
 def test_input_and_output_are_separate_goods() -> None:
     """Blending them would require an assumed ratio nobody can observe."""
-    out = run("TIX-GLM53-OUT", DAY)
-    inp = run("TIX-GLM53-IN", DAY)
+    out = _panel(DEFAULT_GATES.min_providers, "TIX-GLM53-OUT")
+    inp = _panel(DEFAULT_GATES.min_providers, "TIX-GLM53-IN", base=0.80)
+    assert out.published and inp.published
     assert out.value != inp.value
     assert CONTRACTS["TIX-GLM53-OUT"].direction is not CONTRACTS["TIX-GLM53-IN"].direction
 
 
-def _panel(sellers: int, code: str = "TIX-GLM53-OUT"):
+def _panel(sellers: int, code: str = "TIX-GLM53-OUT", base: float = 3.00):
     """An indexable good quoted by ``sellers`` sellers, three rows each.
 
     Three rows per seller keeps the panel clear of the observation-count gate,
@@ -93,7 +112,8 @@ def _panel(sellers: int, code: str = "TIX-GLM53-OUT"):
     from tokidx.estimator import estimate
 
     quotes, rejections = normalize_all(
-        [_obs(f"seller{i}", CONTRACTS[code].model, (3.00 + 0.10 * i) * tilt)
+        [_obs(f"seller{i}", CONTRACTS[code].model, (base + 0.10 * i) * tilt,
+              direction=CONTRACTS[code].direction)
          for i in range(sellers) for tilt in (0.98, 1.00, 1.02)],
         code,
     )
