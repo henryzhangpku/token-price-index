@@ -43,7 +43,9 @@ def digest(name: str) -> str:
 
 
 def stamped(source: str, name: str, value: str) -> str:
-    pattern = rf"{re.escape(name)}\?v=[0-9a-f]+"
+    # Any token, not only hex: a hand-written stamp like ?v=flow0918 would
+    # otherwise match its leading "f" and leave the rest glued on.
+    pattern = rf"{re.escape(name)}\?v=[0-9A-Za-z_.-]+"
     if re.search(pattern, source):
         return re.sub(pattern, f"{name}?v={value}", source)
     return source.replace(name, f"{name}?v={value}")
